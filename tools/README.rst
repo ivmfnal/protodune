@@ -112,5 +112,48 @@ For example:
                     }
                 ]
                 
+                $ metacat file show -j declad_test:data_406171931_3.test
+                {
+                    "checksums": {
+                        "adler32": "727689a8"
+                    },
+                    "children": [],
+                    "created_timestamp": 1655492877.700407,
+                    "fid": "72079136da3e43fa81ed27c99fcd527e",
+                    "metadata": {
+                        "DUNE.campaign": "dc4",
+                        "DUNE.datataking": "COLDBOX_run2021",
+                        "core.data_stream": "test",
+                        "core.data_tier": "raw",
+                        "core.event_count": 3,
+                        "core.events": [
+                            7,
+                            8,
+                            9
+                        ],
+                        "core.file_format": "binary",
+                        "core.file_type": "detector",
+                        "core.run_type": "dc4-vd-coldbox-top",
+                        "core.runs": [
+                            406171931
+                        ],
+                        "core.runs_subruns": [
+                            40617193100001
+                        ],
+                        "math.pi": 3.14,
+                        "math.primes": [
+                            2,
+                            3,
+                            5,
+                            7,
+                            11,
+                            13
+                        ]
+                    },
+                    "name": "data_406171931_3.test",
+                    "namespace": "declad_test",
+                    "parents": [],
+                    "size": 3168006718
+                }
                 
 
