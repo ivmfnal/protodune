@@ -72,5 +72,45 @@ will be used to add or override metadta read from the input file. The following 
             "event_count"
                 
 
+For example:
 
+        .. code-block:: shell
+        
+                $ cat meta.json
+                {
+                  "DUNE.campaign": "dc4",
+                  "DUNE.datataking": "COLDBOX_run2021",
+                  "checksum": "727689a8",
+                  "data_stream": "test",
+                  "data_tier": "raw",
+                  "file_format": "binary",
+                  "file_name": "data_406171931_3.test",
+                  "file_size": 3168006718,
+                  "file_type": "detector",
+                  "runs": [
+                    [
+                      406171931,
+                      1,
+                      "dc4-vd-coldbox-top"
+                    ]
+                  ],
+                  "events": [ 7,8,9 ]
+                }
+                
+                $ cat extra.json 
+                {
+                   "math.pi": 3.14,
+                   "math.primes": [2,3,5,7,11,13]
+                }
+                
+                $ python tools/declare_meta.py -n declad_test -o - -e extra.json declad_test:test meta.json
+                [
+                    {
+                        "fid": "72079136da3e43fa81ed27c99fcd527e",
+                        "name": "data_406171931_3.test",
+                        "namespace": "declad_test"
+                    }
+                ]
+                
+                
 
