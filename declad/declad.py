@@ -9,11 +9,11 @@ from webpie import HTTPServer
 
 class DeclaD(PyThread, Logged):
     
-    def __init__(self, config):
+    def __init__(self, config, history_db):
         PyThread.__init__(self, name="DeclaD")
         Logged.__init__(self, "declad")
         self.Config = config
-        self.HistoryDB = historydb.open(config.get("history_db", "history.sqlite"))
+        self.HistoryDB = history_db
         self.MoverManager = Manager(config, self.HistoryDB)
         self.Scanner = Scanner(self.MoverManager, config)
         self.Stop = False
@@ -68,10 +68,18 @@ if __name__ == "__main__":
             config.get("error") or config.get("log")
     )
 
-    declad = DeclaD(config)
+    history_db = historydb.open(config.get("history_db", "history.sqlite"))
+    
+    if "graphite" in config:
+        from graphite_interface import GraphiteSender
+        gsender = GraphiteSender(config["graphite"], history_db)
+        gsender.start()
+
+    declad = DeclaD(config, history_db)
     web_config = config.get("web_gui", {})
     web_server = HTTPServer(web_config.get("port", 8080), App(web_config, declad))
     declad.start()
     web_server.start()
     declad.join()
+    
 

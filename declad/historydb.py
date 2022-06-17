@@ -136,9 +136,9 @@ class _HistoryDB(PyThread, Logged):
     def eventCounts(self, bin, since_t = 0):
         with self.dbconn() as conn:
             c = conn.cursor()
-            c.execute("""select status, round(t/?)*? as tt, count(*)
+            c.execute("""select status, round(tend/?)*? as tt, count(*)
                     from file_log
-                    where tt >= ?
+                    where tend >= ?
                     group by status, tt
                     order by status, tt""", (bin, bin, since_t))
             return c.fetchall()

@@ -397,6 +397,7 @@ class MoverTask(Task, Logged):
         self.EventDict[event] = self.LastUpdate = t =  time.time()
         self.EventLog.append((event, t, info))
         self.log(event)
+        self.debug(event, "info:", info)
         self.Status = event
 
     @synchronized

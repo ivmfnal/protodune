@@ -36,3 +36,10 @@ web_gui:
     port: 8080
     site_title: Web site title
     prefix: /declad_demo
+    
+graphite:
+        host: filer-carbon.cern.ch
+        port: 2004
+        namespace: fts.protodune.np04-srv-024-hd5 
+        interval: 10
+        bin: 60
