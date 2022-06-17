@@ -1,0 +1,38 @@
+scanner:
+    server: host.domain:port
+    location:   /absolute/path/to/dropbox
+    filename_pattern:   "*.hdf5"
+    # meta_suffix:        .json           # optional
+    ls_command_template:    "xrdfs $server ls -l $location"         # $server and $location will be replaced in run time
+    parse_re:               "^(?P<type>[a-z-])\S+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<size>\d+)\s+(?P<path>\S+)$"
+    timeout:                30      # seconds
+    
+metacat_dataset:    dune:all                # namespace:name
+rucio_dataset_did_template: "%(run_type)s:%(run_type)s_%(run_number)s"          # Python %-operation template, applied to the file metadata dict
+
+sourse_server:        root://dropbox.host:port                 
+destination_server:   root://dest.host:port
+destination_root_path:  /path/to/top/of/dest/namespace          # absolute
+
+create_dirs_command_template:   "xrdfs $server mkdir -p $path"
+copy_command_template:          "xrdcp --force --silent --tpc $src_url $dst_url"
+quarantine_location:            /eos/experiment/neutplatform/protodune/dune/ivm/quarantine
+
+drop_rse:   CERN_EOS            # Rucio name of the RSE where the data arrives being copied from the dropbox
+replication_targets:            # RSEs to create replication rule to
+    - FNAL_DCACHE
+    - CERN_CASTOR
+
+retry_interval: 3600            # default 3600
+transfer_timeout: 120           # default 120
+keep_interval:  86400           # default 24 hours
+
+
+metacat_url:    https://metacat.fnal.gov:9443/dune_meta_demo/app/data
+rucio_url:      https://dune-rucio.fnal.gov
+samweb_url:     https://samweb.fnal.gov:8483/sam/dune/api           # optionel. If omited, do not declare to SAM
+
+web_gui:
+    port: 8080
+    site_title: Web site title
+    prefix: /declad_demo

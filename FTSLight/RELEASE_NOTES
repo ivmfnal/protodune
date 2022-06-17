@@ -1,0 +1,52 @@
+Version 2.10 5/3/2018
+=====================
+Changes:
+  * Added OperationTimeout to the Scanner section of the configuration. 
+    It will control the timeout for "ls" command.
+    Example:
+    
+    [Scanner]
+    OperationTimeout = 30
+    ...
+    
+  * Added RFC2617 authentication for hold/release web service methods
+    Username/password pairs are cofigured under "Users" section, one "username = password" line per user, e.g.:
+    
+    [Users]
+    bob = BobsPasswrd
+    alice = _passwrd_for_Alice
+
+    On the client side, use curl to hold/release FTS-light:
+    
+    curl --digest -u alice:_passwrd_for_Alice http://host.fnal.gov:8090/fts-light/WS/hold
+    curl --digest -u bob:BobsPasswrd http://host.fnal.gov:8090/fts-light/WS/release
+
+    This should work through the proxy too.
+
+Version 2.9 4/2/2018
+=====================
+Changes:
+  * Added transfer rate hisrogram
+
+Version 2.8 3/12/2018
+=====================
+Changes:
+  * Added monitoring GUI URL prefix
+  
+Upgrade instructions:
+
+  * Edit the configuration file:
+    - create new section "Monotor"
+    - move HTTPPort option from "Mover" section to "Monitor"
+    - optionally, add line GUIPrefix to the "Monitor" secion
+    
+    Example:
+    
+    [Mover]
+    ...
+    
+    [Monitor]
+    # default port is 8080
+    HTTPPort = 8081
+    # Start with "/", default prefix is /fts-light
+    GUIPrefix = /fts-light-2

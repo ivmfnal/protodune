@@ -1,0 +1,104 @@
+{% extends "template.html" %}
+
+{% block contents %}
+
+
+
+<h2>Summary</h2>
+
+<table class="states">
+        {% for state in states %}
+            <tr>
+                <th>{{state}}</th>
+                <td>{{files_in_states[state]|count}}</td>
+            </tr>
+        {% endfor %}
+</table>
+    
+
+<table id="main_table" class="formatting" style="width:100%">
+    {#
+    <tr>
+        <th>Filename</th><th>Status</th>
+    </tr>
+    #}
+    <tr><td colspan=3><hr/></td></tr>
+    <tr>
+        <th>Active transfers</th>
+    </tr>
+    {% for mover in movers %}
+        <tr>
+            <td><a href="./history?filename={{mover.FileName}}">{{mover.FileDescriptor}}</a></td>
+            <td>{{mover.Status}}</td>
+        </tr>
+    {% endfor %}
+
+    {% for desc in queue %}
+        <tr>
+            <td><a href="./history?filename={{desc.Name}}">{{desc}}</a></td>
+            <td>ready</td>
+        </tr>
+    {% endfor %}
+    
+    {% for t, desc in waiting %}
+        <tr>
+            <td><a href="./history?filename={{desc.Name}}">{{desc}}</a></td>
+            <td>waiting for metadata since {{t|dt_fmt}}</td>
+        </tr>
+    {% endfor %}
+    
+    {% for t, desc in retry %}
+        <tr>
+            <td><a href="./history?filename={{desc.Name}}">{{desc}}</a></td>
+            <td>retry after {{t|dt_fmt}}&nbsp;<a href="./retry_now?filename={{desc.Name}}">retry now</a></td>
+        </tr>
+    {% endfor %}
+
+    <tr><td colspan=3><hr/></td></tr>
+
+    <tr>
+        <th>Done transfers</th>
+        <td><a href="javascript:toggle_expand('state:done')" class="button" mode="collapsed">{{done|length}}</a></td>
+    </tr>
+
+    {% for filename, event, tend, size, elapsed in done %}
+        <tr tag="state:done" style="visibility:hidden">
+            <td><a href="./history?filename={{filename}}">{{filename}}</a></td>
+            <td>done at {{tend|dt_fmt}}</td>
+            <td>{{size|pretty_size}}, {{(size/elapsed)|pretty_size}}/sec</td>
+        </tr>
+    {% endfor %}
+</table>
+
+<script type="text/javascript">
+
+    var done_visible = false;
+
+    function toggle_expand(tag)
+    {
+        var tab = document.getElementById("main_table");
+        var rows = tab.rows;
+        var n = rows.length;
+        for( var ir = 0; ir < n; ir++ )
+        {
+            var row = rows[ir];
+            if( row.getAttribute("tag") == tag )
+            {
+                if( !done_visible )
+                {
+                    //row.style.display = "";
+                    row.style.visibility = "visible";
+                }
+                else
+                {
+                    //row.style.display = "none";
+                    row.style.visibility = "hidden";
+                }
+            }
+        }
+        done_visible = !done_visible;
+    }
+</script>
+
+{% endblock %}
+    

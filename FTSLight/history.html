@@ -1,0 +1,23 @@
+{% extends "template.html" %}
+
+{% block contents %}
+
+<h2>FTS-light history by file</h2>
+<table class="log">
+    {% for fn, n, t0, lst in history %}
+        {% for t, event, info in lst %}
+            <tr>
+                {% if loop.first %}
+                    <td rowspan="{{n}}">{{fn}}</td>
+                {% endif %}
+                <td class="timestamp">{{t|dt_fmt}}{% if not loop.first %}&nbsp;({{(t-t0)|pretty_time}}){%
+                endif %}</td>
+                <td class="message">{{event}}</td>
+                <td class="message">{{info}}</td>
+            </tr>
+        {% endfor %}
+    {% endfor %}
+</table>
+
+{% endblock %}
+    

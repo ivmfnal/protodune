@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% if task is none %}
+	<p>Log not found</p>
+
+{% else %}
+
+	{% set file_desc = task.FileDesc %}
+
+	<h1>File {{file_desc.Name}}</h1>
+
+	<table class="form">
+		<tr>
+			<th>Name:</th><td>{{file_desc.Name}}</td>
+		</tr>
+		<tr>
+			<th>Server:</th><td>{{file_desc.Server}}</td>
+		</tr>
+		<tr>
+			<th>Location:</th><td>{{file_desc.Location}}</td>
+		</tr>
+		<tr>
+			<th>Created:</th><td>{{task.Created|as_dt_utc}}</td>
+		</tr>
+		<tr>
+			<th>Queued last time:</th><td>{{task.Queued|as_dt_utc}}</td>
+		</tr>
+		<tr>
+			<th>Status:</th><td>{{task.Status}}</td>
+		</tr>
+		<tr>
+			<th>Failed:</th><td>{{"yes" if task.Failed else "no"}}</td>
+		</tr>
+		<tr>
+			<th>Error:</th><td>{{task.Error}}</td>			
+		</tr>
+	</table></p>
+
+	<h2>Event Log</h2>
+
+	{% if task.EventLog|length %}
+
+		<table class="data">
+			<tr>
+				<th>Time</th><th>Event</th><th>Info</th>
+			</tr>
+			{% for event, t, info in task.EventLog %}
+			<tr>
+				<td>{{t|as_dt_utc}}</td>
+				<td>{{event}}</td>
+                                <td>{{info or ''}}</td>
+			</tr>
+			{% endfor %}
+		</table>
+
+	{% endif %}
+
+{% endif %}
+
+{% endblock %}

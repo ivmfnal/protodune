@@ -1,0 +1,16 @@
+{% extends "template.html" %}
+
+{% block contents %}
+
+<h2>FTS-light log</h2>
+<table class="log">
+    {% for t, message in log %}
+        <tr>
+            <td class="timestamp">{{t|dt_fmt}}</td>
+            <td class="message">{{message}}</td>
+        </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}
+    

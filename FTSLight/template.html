@@ -1,0 +1,145 @@
+<html>
+<head>
+    <title>{%block head_title %}FTS-Light{% endblock %}</title>
+    <style type="text/css">
+        body, td, th {
+            font-family: Verdana, Arial, Verdana, Tahoma;
+            font-size: 12px;
+            vertical-align: top;
+            }
+        td, th {
+            border: 1px solid #aaaaaa;
+            padding: 5px;
+            }
+        td {
+            border: 1px solid #aaaaaa;
+        }
+        th {
+            border-bottom: 1px solid #aaaaaa;
+            text-align: left;
+            b-ackground-color: #eeeeee;
+            color: gray;
+            }
+        table {
+            border-collapse: collapse;
+            border: 1px solid #aaaaaa;
+            }
+
+        table.formatting {
+            border: 0;
+        }
+
+        .formatting td, .formatting th {
+            border: 0;
+        }
+        
+        table.log {
+            border: 0;
+        }
+        .log td, .log th {
+            vertical-align: top;
+            border: 0;
+        }
+        .log td.message {
+            white-space: pre;
+        }
+
+        table.config {
+            border: 0;
+        }
+        .config td, .config th {
+            vertical-align: top;
+            border: 0;
+        }
+        .config td.option {
+            text-align: right;
+        }
+        .config td.value {
+            text-align: left;
+        }
+
+
+        table.states {
+            border: 0;
+        }
+        .states th {
+            text-align: right;
+            color: black;
+        }
+        .states td, .states th {
+            font-weight:    normal;
+            vertical-align: top;
+            align: right;
+            border: 0;
+        }
+
+            
+
+        div.log_line {
+            white-space: nowrap;
+            font-size:10px;
+            }
+
+        .red {
+            color: #FF4444;
+            }
+        .yellow {
+            color: #AA3333;
+            }
+
+        .none {
+            border-left: 0;
+            border-right: 0;
+        }
+
+        .right {
+            border-left: 0;
+            }
+        .left {
+            border-right:   0;
+            }
+
+        p.connection_log {
+            font-family: Courier;
+            }
+            {% block extra_head %}{% endblock %}
+    </style>
+    
+    {% block head %}{% endblock %}
+</head>
+<body>
+<h1>FTS-<i><span color="gray">light</span></i></h1>
+
+{% set menu = [("index","home"), ("log","log"), ("history","history"), ("config","configuration"), ("charts","charts"), ("input_dir","input location")] %}
+
+
+
+<p id="template_menu">
+    {%- for url, label in menu -%}
+        <a href="{{GLOBAL_URLPrefix}}/{{url}}">{{label}}</a>&nbsp;&nbsp;
+    {%- endfor -%}
+    {% if held %}
+        <span style="color:red;">FTS-light is held</span>
+    {% endif %}
+    <span id="time_display" style="float:right"></span>
+</p>
+
+
+<script type="text/javascript">
+        setInterval(
+                function() {
+                        var o = document.getElementById("time_display");
+                        var d = new Date();
+                        o.innerHTML = "" + d.toUTCString();
+                },
+                1000);
+</script>
+
+
+<div style="padding: 10px 50px">{% block contents %}{% endblock %}</div>
+<div style="position:fixed; bottom:5px; right:10px; font-style:italic; color:gray">Version: {{GLOBAL_Version}}</div>
+
+</body>
+</html>
+
+

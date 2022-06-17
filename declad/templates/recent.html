@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Recent Transfers</h1>
+
+{% if recent_tasks|length %}
+
+	<table class="data">
+	    <tr>
+			<th>File</th><th>Size</th><th>Last started</th><th colspan="3">Last event</tr>
+	    </tr>
+	    {% for t in recent_tasks %}
+		<tr>
+		    <td><a href="./task_log/{{t.name}}">{{t.name}}</a></td>
+                    <td>{{t.FileDesc.Size|pretty_size}}</td>
+		    <td>{{t.last_event("started")[1]|as_dt_utc}}</td>
+			{% set last_tup = t.last_event() %}
+	  	    <td>{{last_tup[1]|as_dt_utc}}</td>
+		    <td>{{last_tup[0] or ""}}</td>
+	  	    <td>{{last_tup[2] or ""}}</td>
+		</tr>
+	    {% endfor %}
+	</table>
+
+{% else %}
+
+	<p>No recent transfers</p>
+
+{% endif %}
+
+{% endblock %}

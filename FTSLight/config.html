@@ -1,0 +1,22 @@
+{% extends "template.html" %}
+
+{% block contents %}
+
+<h2>FTS-light configuration</h2>
+<table class="config">
+    {% for s, lst in config %}
+        <tr>
+            <td>[{{s}}]</td>
+        </tr>
+        {% for k, v in lst %}
+            <tr>
+                <td></td>
+                <td class="option">{{k}}&nbsp;=</td>
+                <td class="value">{{v}}</td>
+            </tr>
+        {% endfor %}
+    {% endfor %}
+</table>
+
+{% endblock %}
+    

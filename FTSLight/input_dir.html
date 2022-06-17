@@ -1,0 +1,33 @@
+{% extends "template.html" %}
+
+{% block contents %}
+
+<h2>FTS-light input directory contents</h2>
+
+
+    <table class="formatting">
+        <tr>
+            <th>Server</th>
+            <th>Location</th>
+            <th>Files</th>
+        </tr>
+        {% for server, location, status, error, files in data %}
+            <tr>
+                <td>{{server}}</td>
+                <td>{{location}}</td>
+                {% if status %}
+                    <td class="error">Error listing the input directory: {{error}}</td>
+                {% else %}
+                    <td>{% for f in files %}
+                            {{f}}<br/>
+                        {% endfor %}
+                    </td>
+                {% endif %}
+            </tr>
+        {% endfor %}
+    </table>
+
+
+
+{% endblock %}
+    
