@@ -63,7 +63,7 @@ class ThreadMonitor(PyThread, Logged):
             time.sleep(self.Interval)
             counts = {}
             for x in threading.enumerate():
-                n = x.__class__.__name__
+                n = "%s.%s" % (x.__class__.__module__ or "", x.__class__.__name__)
                 if isinstance(x, Primitive):
                         try:    n = x.kind
                         except: pass

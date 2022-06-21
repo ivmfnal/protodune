@@ -1,4 +1,4 @@
-import sqlite3, time
+import sqlite3, time, sys
 from logs import Logged
 from pythreader import Primitive, synchronized, PyThread
 

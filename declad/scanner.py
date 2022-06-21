@@ -62,10 +62,13 @@ class Scanner(PyThread, Logged):
                         out_files[data_name] = data_desc
                     else:
                         metadata_files.add(data_name)
+
+            self.log("found %d matching files" % (len(out_files),))
+            
             if out_files:
-                self.debug("sending files:")
-                for fn, desc in out_files.items():
-                    self.debug(desc.Path, fn)
+                #self.debug("sending files:")
+                #for fn, desc in out_files.items():
+                #    self.debug(desc.Path, fn)
                 self.Receiver.add_files(out_files)
 
             if not self.Stop:

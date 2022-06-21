@@ -477,6 +477,7 @@ class Manager(PyThread, Logged):
         #self.Delayed = dict((name, t) for name, t in self.Delayed.items() if t > time.time())
         waiting, active = self.TaskQueue.tasks()
         in_progress = set(t.name for t in waiting + active)
+        nqueued = 0
         for name, filedesc in files_dict.items():
             name = filedesc.Name
             if name not in in_progress:
@@ -489,6 +490,8 @@ class Manager(PyThread, Logged):
                     task.RetryAfter = time.time() + self.RetryCooldown
                     self.TaskQueue.addTask(task)
                     task.timestamp("queued")
+                    nqueued += 1
+        self.log("%d new files queued out of %d found by the scanner" % (nqueued, len(files_dict)))
 
     @synchronized
     def taskEnded(self, queue, task, _):
@@ -517,7 +520,6 @@ class Manager(PyThread, Logged):
             self.HistoryDB.file_quarantined(desc.Name, task.Started, error, task.Ended)
         else:
             self.HistoryDB.file_failed(desc.Name, desc.Size, task.Started, error, task.Ended)
-
 
     def purge_memory(self):
         self.RecentTasks = {name: task for name, task in self.RecentTasks.items() if task.KeepUntil >= time.time()}
