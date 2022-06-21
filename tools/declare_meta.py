@@ -83,8 +83,8 @@ client = MetaCatClient(metacat_url)
 constant_namespace = opts.get("-n")
 dataset_did = args[0]
 
-extra_meta = None if "-e" not in opts else json.load(open(opts["-e"], "r"))
-assert isinstance(extra_meta, (None, dict)), "Extra metadata has to be a dictionary"
+extra_meta = {} if "-e" not in opts else json.load(open(opts["-e"], "r"))
+assert isinstance(extra_meta, dict), "Extra metadata has to be a dictionary"
 extra_meta = extra_meta or {}
 
 files = []

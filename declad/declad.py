@@ -3,7 +3,7 @@ from scanner import Scanner
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from config import Config
 from logs import Logged
-import historydb, pprint
+import historydb, pprint, time, threading
 from web_server import App
 from webpie import HTTPServer
 
@@ -51,6 +51,28 @@ class DeclaD(PyThread, Logged):
     def input_location(self):
         return self.Scanner.Server, self.Scanner.Location
 
+class ThreadMonitor(PyThread, Logged):
+
+    def __init__(self, interval):
+        Logged.__init__(self, "ThreadMonitor")
+        PyThread.__init__(self, name="ThreadMonitor", daemon=True)
+        self.Interval = interval
+
+    def run(self):
+        while True:
+            time.sleep(self.Interval)
+            counts = {}
+            for x in threading.enumerate():
+                n = x.__class__.__name__
+                if isinstance(x, Primitive):
+                        try:    n = x.kind
+                        except: pass
+                counts[n] = counts.get(n, 0)+1
+            self.log("--- thread counts: ---")
+            for n, c in sorted(counts.items()):
+                self.log("    %-50s%d" % (n+":", c))
+
+
 if __name__ == "__main__":
     import getopt, sys
     from logs import init_logger
@@ -67,6 +89,9 @@ if __name__ == "__main__":
             debug, config.get("debug_out") or config.get("log") or ("-" if debug else None), 
             config.get("error") or config.get("log")
     )
+
+    tm = ThreadMonitor(5*60)
+    tm.start()
 
     history_db = historydb.open(config.get("history_db", "history.sqlite"))
     
