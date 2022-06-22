@@ -1,7 +1,7 @@
 from pythreader import PyThread, synchronized, Primitive
 from threading import Event
 from tools import runCommand
-import time, fnmatch, re
+import time, fnmatch, re, traceback, sys
 
 Debug = False
 
@@ -194,6 +194,9 @@ class Scanner(PyThread):
     def run(self):
         while True:
             if not self.Held:
-                self.scan()
+                try:
+                    self.scan()
+                except:
+                    print(f"Exception in Scanner({self.Server}, {self.Location}):", traceback.format_exc(), file=sys.stderr)
             debug("waiting...")
             self.sleep(self.ScanInterval)

@@ -1,7 +1,7 @@
 from pythreader import PyThread, synchronized, Primitive
 from threading import Event
 from tools import runCommand
-import time, fnmatch, re
+import time, fnmatch, re, traceback, sys
 from logs import Logged
 
 class FileDescriptor(object):
@@ -200,6 +200,10 @@ class Scanner(PyThread, Logged):
     def run(self):
         while True:
             if not self.Held:
-                self.scan()
+                try:
+                    self.scan()
+                except Exception as e:
+                    error = "scan() error: " + traceback.format_exc()
+                    self.error(error)
             self.debug("waiting...")
             self.sleep(self.ScanInterval)
