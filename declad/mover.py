@@ -434,7 +434,9 @@ class Manager(PyThread, Logged):
         PyThread.__init__(self, name="Mover")
         Logged.__init__(self, name="Mover")
         self.Config = config
-        self.TaskQueue = TaskQueue(config.get("max_movers", 10), stagger=0.5, delegate=self)
+        capacity = config.get("queue_capacity")
+        max_movers = config.get("max_movers", 10)
+        self.TaskQueue = TaskQueue(max_movers, capacity=capacity, stagger=0.5, delegate=self)
         self.RetryCooldown = int(config.get("retry_interval", 3600))
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
         self.HistoryDB = history_db

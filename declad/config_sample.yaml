@@ -6,7 +6,12 @@ scanner:
     ls_command_template:    "xrdfs $server ls -l $location"         # $server and $location will be replaced in run time
     parse_re:               "^(?P<type>[a-z-])\S+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<size>\d+)\s+(?P<path>\S+)$"
     timeout:                30      # seconds
-    
+
+max_movers: 10                          # default 10
+queue_capacity: 100                     # stop scanning for input files if the queue is backlogged. default - no limit
+retry_cooldown: 3600                    # file retry interval
+keep_interval: 86400                    # interval to keep file processing log in memory
+
 metacat_dataset:    dune:all                # namespace:name
 rucio_dataset_did_template: "%(run_type)s:%(run_type)s_%(run_number)s"          # Python %-operation template, applied to the file metadata dict
 

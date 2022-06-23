@@ -227,6 +227,7 @@ class Configuration(object):
         self.KeepHistoryInterval = int(config.get("Mover", "KeepHistoryInterval", 3600*24))
         self.KeepLogInterval = int(config.get("Mover", "KeepLogInterval", 3600))
         self.MaxMovers = int(config.get("Mover", "MaxMovers", 10))
+        self.QueueCapacity = int(config.get("Mover", "QueueCapacity", None))
         self.SourcePurge = "none"
         self.DeleteSource = config.get("Mover", "DeleteSource", "no") == "yes"
         if self.DeleteSource:
@@ -390,6 +391,7 @@ class Manager(PyThread, Logged):
         self.KeepHistoryInterval = self.Config.KeepHistoryInterval
         self.ChecksumRequired = self.Config.ChecksumRequired
         self.MaxMovers = self.Config.MaxMovers
+        self.QueueCapacity = elf.Config.QueueCapacity
         self.SourcePurge = self.Config.SourcePurge
         self.Logger = Logger(self.Config.KeepLogInterval)
         self.DatabaseFile = self.Config.DatabaseFile
@@ -406,7 +408,7 @@ class Manager(PyThread, Logged):
 
         self.Held = held
 
-        self.MoverQueue = TaskQueue(self.MaxMovers, stagger = self.StaggerInterval)
+        self.MoverQueue = TaskQueue(self.MaxMovers, stagger = self.StaggerInterval, capacity=self.QueueCapacity)
         if self.Held:
             self.MoverQueue.hold()
                 
