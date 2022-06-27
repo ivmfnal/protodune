@@ -530,3 +530,4 @@ class Manager(PyThread, Logged):
         while not self.Stop:
             self.sleep(60, self.purge_memory)
                     
+    

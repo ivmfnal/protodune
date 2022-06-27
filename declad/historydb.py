@@ -126,6 +126,19 @@ class _HistoryDB(PyThread, Logged):
             return [_Record(*tup) for tup in c.fetchall()]
 
     @synchronized
+    def getRecords(self, status, since_t = None):
+        since_t = since_t or 0
+        with self.dbconn() as conn:
+            c = conn.cursor()
+            c.execute("""select filename, status, tend, size, tend-tstart
+                    from file_log
+                    where status = ? and t > ?
+                    order by tend""",
+                    (status, since_t)
+            )
+            return c.fetchall()
+
+    @synchronized
     def purgeOldRecords(self, before):
         with self.dbconn() as conn:
             c = conn.cursor()

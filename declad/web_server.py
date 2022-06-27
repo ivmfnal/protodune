@@ -40,7 +40,41 @@ class Handler(WPHandler):
             config=self.App.config(),
             formatted=pprint.pformat(self.App.config())
         )
-        
+
+    #
+    # Data methods
+    #
+    
+    def rate_histogram(self, req, rel_path, since_t=None, **args):
+        since_t = self.decode_time(since_t)
+        data = self.App.HistoryDB.getRecords("done", since_t)
+        rates = [size/elapsed for _,_,_,size,elapsed in data if elapsed > 0.0]
+        range = 1000000.0           # 1 MB/s
+        if rates:
+            rmax = max(rates)
+            while range < rmax:
+                if range * 2 > rmax:
+                    range *= 2
+                    break
+                if range * 5 > rmax:
+                    range *= 5
+                    break
+                range *= 10
+        nbins = 40
+        bin = range / nbins
+        hist = [0] * nbins
+        #hist[0] = 1
+        #hist[-1] = 1
+        for r in rates:
+            i = int((r+bin/2.0)/bin)
+            hist[i] += 1
+        out = {
+            "range":    range,
+            "data":     [{"rate":i*bin/1000000.0, "count":count} for i, count in enumerate(hist)]
+        }
+        return json.dumps(out), "text/json"
+    
+
 def as_dt_utc(t):
     from datetime import datetime
     if t is None:   return ""
@@ -83,10 +117,11 @@ def pretty_size(s):
         
 class App(WPApp):
     
-    def __init__(self, config, manager):
+    def __init__(self, config, manager, history_db):
         WPApp.__init__(self, Handler, prefix=config.get("prefix"))
         self.Manager = manager
         self.Config = config
+        self.HistoryDB = history_db
         
     def init(self):
         templdir = self.ScriptHome + "/templates"
