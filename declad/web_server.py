@@ -1,9 +1,13 @@
-from webpie import WPApp, WPHandler
+from webpie import WPApp, WPHandler, WPStaticHandler
 from version import Version
 import pprint
 
 class Handler(WPHandler):
     
+    def __init__(self, request, app):
+        WPHandler.__init__(self, request, app)
+        self.static = WPStaticHandler(request, app)
+
     def current(self, request, relpath, **args):
         transfers = self.App.current_transfers()
         return self.render_to_response("current.html", transfers=transfers)
@@ -22,6 +26,9 @@ class Handler(WPHandler):
     def history(self, request, relpath, **args):
         transfers = self.App.finished_transfers()
         return self.render_to_response("history.html", transfers=transfers)
+
+    def charts(self, req, rel_path, **args):
+        return self.render_to_response("charts.html")
 
     def quarantined(self, request, relpath, **args):
         files, error = self.App.quarantined()
@@ -96,7 +103,6 @@ class Handler(WPHandler):
         return json.dumps(out), "text/json"
     
     def transfer_rates(self, req, rel_path, since_t=None, bin=1, **args):
-    
         bin = int(bin)
         since_t = self.decode_time(since_t)
         data = self.App.HistoryDB.getRecords("done", since_t)
