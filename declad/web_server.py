@@ -1,6 +1,6 @@
 from webpie import WPApp, WPHandler
 from version import Version
-import pprint
+import pprint, json
 
 class Handler(WPHandler):
     
