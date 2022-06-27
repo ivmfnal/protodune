@@ -95,6 +95,22 @@ class Handler(WPHandler):
         }
         return json.dumps(out), "text/json"
     
+    def transfer_rates(self, req, rel_path, since_t=None, bin=1, **args):
+    
+        bin = int(bin)
+        since_t = self.decode_time(since_t)
+        data = self.App.HistoryDB.getRecords("done", since_t)
+        points = [{
+            "tend":     tend,
+            "elapsed":  elapsed,
+            "size":     size,
+            } for _,_,tend,size,elapsed in data
+        ]
+        txt = json.dumps(points)
+        def text_iter(text, chunk=1000000):
+            for i in range(0, len(text), chunk):
+                yield text[i:i+chunk]
+        return Response(app_iter = text_iter(json.dumps(points)), content_type = "text/json")
 
 def as_dt_utc(t):
     from datetime import datetime
