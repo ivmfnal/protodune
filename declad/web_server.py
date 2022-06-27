@@ -1,6 +1,6 @@
 from webpie import WPApp, WPHandler, WPStaticHandler
 from version import Version
-import pprint
+import pprint, json
 
 class Handler(WPHandler):
     
@@ -116,7 +116,7 @@ class Handler(WPHandler):
         def text_iter(text, chunk=1000000):
             for i in range(0, len(text), chunk):
                 yield text[i:i+chunk]
-        return Response(app_iter = text_iter(json.dumps(points)), content_type = "text/json")
+        return text_iter(json.dumps(points)), "text/json"
 
 def as_dt_utc(t):
     from datetime import datetime

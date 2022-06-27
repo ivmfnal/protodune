@@ -132,7 +132,7 @@ class _HistoryDB(PyThread, Logged):
             c = conn.cursor()
             c.execute("""select filename, status, tend, size, tend-tstart
                     from file_log
-                    where status = ? and t > ?
+                    where status = ? and tend > ?
                     order by tend""",
                     (status, since_t)
             )
