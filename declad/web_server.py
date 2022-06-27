@@ -45,6 +45,27 @@ class Handler(WPHandler):
     # Data methods
     #
     
+    def decode_time(self, t):
+        if t is None:   return t
+
+        time_units = {
+            's':    1,
+            'm':    60,
+            'h':    3600,
+            'd':    3600*24
+        }
+
+        relative = t[0] == '-'
+        if relative:    t = t[1:]
+
+        if t[-1] in "smhd":
+            t, unit = int(t[:-1]), t[-1]
+            t = t*time_units[unit]
+        else:
+            t = int(t)
+        if relative:    t = time.time() - t
+        return t
+    
     def rate_histogram(self, req, rel_path, since_t=None, **args):
         since_t = self.decode_time(since_t)
         data = self.App.HistoryDB.getRecords("done", since_t)
