@@ -132,8 +132,7 @@ class Handler(WPHandler):
         }
         return json.dumps(out), "text/json"
     
-    def transfer_rates(self, req, rel_path, since_t=None, bin=1, **args):
-        bin = int(bin)
+    def transfer_rates(self, req, rel_path, since_t=None, **args):
         since_t = self.decode_time(since_t)
         data = self.App.HistoryDB.getRecords("done", since_t)
         points = [{
@@ -151,7 +150,6 @@ class Handler(WPHandler):
     Events = ["done", "failed", "quarantined"]
         
     def event_counts(self, req, rel_path, event_types=None, since_t=None, bin=None, **args):
-    
         bin = self.decode_time(bin)   
         bin = max(int(bin), 1.0)
         #print "bin=",bin,"  since_t=",since_t
