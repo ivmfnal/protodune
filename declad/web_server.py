@@ -52,7 +52,7 @@ class Handler(WPHandler):
     # Data methods
     #
     
-    def decode_time(self, t, default):
+    def decode_time(self, t):
         if t is None:   return default
 
         time_units = {
@@ -74,7 +74,7 @@ class Handler(WPHandler):
         return t
    
     def event_counts(self, req, rel_path, since_t=None, bin=None, **args):
-        bin = self.decode_time(bini, 1)   
+        bin = self.decode_time(bin)   
         bin = max(int(bin), 1)
         #print "bin=",bin,"  since_t=",since_t
         tmin = int(self.decode_time(since_t)/bin)*bin
