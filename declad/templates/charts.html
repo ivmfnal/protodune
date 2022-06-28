@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block head %}
-<script src="{{GLOBAL_URLPrefix}}/static/requests.js"></script>
+{% block html_head %}
+<script src="{{GLOBAL_URL_Prefix}}/static/requests.js"></script>
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
 {% endblock %}
 
 {% block content %}
 
-<h2>FTS-light charts</h2>
+<h2>Charts</h2>
 
 <p>
 <table class="formatting" style="width:100%">
@@ -112,7 +112,7 @@
     
     function initCharts()
     {
-        events_count_chart = new event_counts("event_counts", "./event_counts");
+        events_count_chart = new event_counts("event_chart", "./event_counts");
         refresh_charts();
     }
 
