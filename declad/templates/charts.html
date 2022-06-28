@@ -126,16 +126,25 @@
         }
         this.data_received = function(data)
         {
-            var options = {};
+            var options = {
+                isStacked: true,
+                vAxis: {    minValue: 0 } 
+            };
             var desc_row = [{type: 'datetime', label: 'Time'}];
             for( e of data.events )
                 desc_row.push(e);
             var rows = [desc_row];
+            var max_count = 0;
             for(row of data.rows)
             {
                 row[0] = new Date(row[0]);
-                rows.push(row); 
+                rows.push(row);
+                for( var i=1; i<row.length; i++ )
+                    if( row[i] > max_count )
+                        max_count = row[i];
             }
+            if( max_count <= 10 )
+                options["vAxis"]["maxValue"] = 10; 
             this.Chart.draw(google.visualization.arrayToDataTable(rows), options)
         }
     }
