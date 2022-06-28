@@ -157,7 +157,7 @@ class Handler(WPHandler):
         #print "bin=",bin,"  since_t=",since_t
         tmin = int(self.decode_time(since_t)/bin)*bin
         tmax = int((time.time()+bin-1)/bin)*bin
-        event_counts = self.App.HistoryDB.eventCounts(events, bin, tmin)
+        event_counts = self.App.HistoryDB.eventCounts(bin, tmin)
         
         counts = {}
         events = set(self.Events) | set(event for event, _, _ in event_counts)
