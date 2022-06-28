@@ -128,7 +128,12 @@
         {
             var options = {
                 isStacked: true,
-                vAxis: {    minValue: 0 } 
+                vAxis: {    minValue: 0 },
+                series: {
+                    0: { color: "green" },
+                    1: { color: "red"   },
+                    2: { color: "blue"  }
+                }
             };
             var desc_row = [{type: 'datetime', label: 'Time'}];
             for( e of data.events )
