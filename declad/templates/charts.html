@@ -107,7 +107,7 @@
             ];
             for( row of data )
             {
-                var dt = new Date((row.tend - raw.elapsed/2)*1000);
+                var dt = new Date((row.tend - row.elapsed/2)*1000);
                 rows.push([dt, row.size/row.elapsed]);
             }
             if( rows.length < 2 )
