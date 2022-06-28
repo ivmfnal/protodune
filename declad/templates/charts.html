@@ -110,7 +110,7 @@
                 var dt = new Date((row.tend - raw.elapsed/2)*1000);
                 rows.push([dt, row.size/row.elapsed]);
             }
-            this.Chart.draw(rows, options)
+            this.Chart.draw(google.visualization.arrayToDataTable(rows), options)
         }
     }
     
