@@ -83,7 +83,7 @@
             var rows = [
                 ["Rate", "Count"]
             ];
-            for( row of data.counts )
+            for( row of data.data )
                 rows.push([row.rate, row.count]);
             this.Chart.draw(google.visualization.arrayToDataTable(rows), options);
         }

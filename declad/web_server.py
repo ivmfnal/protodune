@@ -128,6 +128,7 @@ class Handler(WPHandler):
             hist[i] += 1
         out = {
             "range":    range,
+            "bin":      bin,
             "data":     [{"rate":i*bin/1000000.0, "count":count} for i, count in enumerate(hist)]
         }
         return json.dumps(out), "text/json"
