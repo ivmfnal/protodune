@@ -53,7 +53,7 @@ class Handler(WPHandler):
     #
     
     def decode_time(self, t):
-        if t is None:   return default
+        if t is None:   return t
 
         time_units = {
             's':    1,
@@ -155,7 +155,6 @@ class Handler(WPHandler):
         bin = self.decode_time(bin)   
         bin = max(int(bin), 1.0)
         #print "bin=",bin,"  since_t=",since_t
-        events = sorted(event_types.split(","))
         tmin = int(self.decode_time(since_t)/bin)*bin
         tmax = int((time.time()+bin-1)/bin)*bin
         event_counts = self.App.HistoryDB.eventCounts(events, bin, tmin)
