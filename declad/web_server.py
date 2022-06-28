@@ -124,12 +124,13 @@ class Handler(WPHandler):
         #hist[0] = 1
         #hist[-1] = 1
         for r in rates:
-            i = int((r+bin/2.0)/bin)
+            i = int(r/bin)
             hist[i] += 1
         out = {
-            "range":    range,
+            "xmin":     0,
+            "xmax":     range,
             "bin":      bin,
-            "data":     [{"rate":i*bin/1000000.0, "count":count} for i, count in enumerate(hist)]
+            "data":     [{"rate":i*bin, "count":count} for i, count in enumerate(hist)]
         }
         return json.dumps(out), "text/json"
     
