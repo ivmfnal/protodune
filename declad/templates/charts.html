@@ -62,7 +62,7 @@
           }
       };
     
-    function rate_histogram(div_id, url)
+    function RateHistogram(div_id, url)
     {
         this.URL = url;
         this.Chart = new google.visualization.Histogram(document.getElementById(div_id));
@@ -89,7 +89,7 @@
         }
     }
 
-    function rate_chart(div_id, url)
+    function Rates(div_id, url)
     {
         this.URL = url;
         this.Chart = new google.visualization.ScatterChart(document.getElementById(div_id));
@@ -107,14 +107,14 @@
             ];
             for( row of data )
             {
-                var dt = new Date(row.tend - raw.elapsed/2);
+                var dt = new Date((row.tend - raw.elapsed/2)*1000);
                 rows.push([dt, row.size/row.elapsed]);
             }
             this.Chart.draw(rows, options)
         }
     }
     
-    function event_counts(div_id, url)
+    function EventCounts(div_id, url)
     {
         this.URL = url;
         this.Chart = new google.visualization.SteppedAreaChart(document.getElementById(div_id));
@@ -158,18 +158,26 @@
         }
     }
     
-    var events_count_chart = null;
+    var events_counts_chart = null;
+    var rate_chart = null;
+    var rate_histogram = null;
     
     function refresh_charts()
     {
         var w = document.getElementById("chart_window").value;
-        if( events_count_chart != null )
-            events_count_chart.request_data(w);
+        if( events_counts_chart != null )
+            events_counts_chart.request_data(w);
+        if( rate_chart != null )
+            rate_chart.request_data(w);
+        if( rate_histogram != null )
+            rate_histogram.request_data(w);
     }
     
     function initCharts()
     {
-        events_count_chart = new event_counts("event_chart", "./event_counts");
+        events_counts_chart = new EventCounts("event_chart", "./event_counts");
+        rate_chart = new RateChart("event_chart", "./event_counts");
+        rate_histogram_chart = new RateHistogram("event_chart", "./event_counts");
         refresh_charts();
     }
 
