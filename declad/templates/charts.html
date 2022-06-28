@@ -136,7 +136,7 @@
                 row[0] = new Date(row[0]);
                 rows.push(row); 
             }
-            this.Chart.draw(rows, options)
+            this.Chart.draw(google.visualization.arrayToDataTable(rows), options)
         }
     }
     
