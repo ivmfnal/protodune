@@ -161,12 +161,11 @@ class Handler(WPHandler):
         
         counts = {}
         events = set(self.Events) | set(event for event, _, _ in event_counts)
-        events = list(events)
+        events = sorted(list(events))
+        for event in events:
+            counts[event] = dict((t,0) for t in range(tmin, tmax, bin))
 
         if event_counts:
-            events = sorted(events)
-            for event in events:
-                counts[event] = dict((t,0) for t in range(tmin, tmax, bin))
             for event, t, n in event_counts:
                 tmin = t if tmin is None else min(t, tmin)
                 tmax = t if tmax is None else max(t, tmax)
