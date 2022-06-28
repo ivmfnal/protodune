@@ -101,7 +101,11 @@
         }
         this.data_received = function(data)
         {
-            var options = {};
+            var options = {
+                hAxis: {
+                    format: 'M/d/yy hh:mm:ss'
+                }
+            };
             var rows = [
                 [{type: 'datetime', label: 'Time'}, "rate"],
             ];
@@ -180,7 +184,7 @@
     {
         events_counts_chart = new EventCounts("event_chart", "./event_counts");
         rate_chart = new Rates("rate_chart", "./transfer_rates");
-        rate_histogram_chart = new RateHistogram("rate_histogram", "./rate_histogram");
+        rate_histogram = new RateHistogram("rate_histogram", "./rate_histogram");
         refresh_charts();
     }
 
