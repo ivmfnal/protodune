@@ -1,7 +1,7 @@
-{% extends "template.html" %}
+{% extends "base.html" %}
 
-{% block head %}
-<script src="{{GLOBAL_URLPrefix}}/static/chart_data.js"></script>
+{% block html_head %}
+<script src="{{GLOBAL_URL_Prefix}}/static/chart_data.js"></script>
 
 <!-- Dygraph -->
 <!--
@@ -20,7 +20,7 @@
 
 {% endblock %}
 
-{% block contents %}
+{% block content %}
 
 <h2>FTS-light charts</h2>
 
@@ -220,7 +220,7 @@
     
     var the_event_chart = new chart_amchart("event_chart", "./event_counts",
         [
-            {   "name": "discovered",       "color":    "#222288"   },
+            {   "name": "quarantined",      "color":    "#222288"   },
             {   "name": "done",             "color":    "#22aa22"   },
             {   "name": "failed",           "color":    "#ff2222"   }
         ]
@@ -272,7 +272,8 @@
                 "fillAlphas":       0.0,
                 "xField":           "tmid",
                 "yField":           "rate",
-                "balloonText":      "[[y]] MB/sec"
+                "balloonText":      "[[y]] MB/sec",
+                "stroke":           "blue"
             });
         
         

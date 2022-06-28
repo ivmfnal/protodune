@@ -1,6 +1,6 @@
 from webpie import WPApp, WPHandler, WPStaticHandler
 from version import Version
-import pprint, json
+import pprint, json, time
 
 class Handler(WPHandler):
     
@@ -72,7 +72,38 @@ class Handler(WPHandler):
             t = int(t)
         if relative:    t = time.time() - t
         return t
+   
+    def event_counts(self, req, rel_path, since_t=None, bin=None, **args):
     
+        bin = self.decode_time(bin)   
+        bin = max(int(bin), 1)
+        #print "bin=",bin,"  since_t=",since_t
+        tmin = int(self.decode_time(since_t)/bin)*bin
+        tmax = int((time.time()+bin-1)/bin)*bin
+        event_counts = self.App.HistoryDB.eventCounts(bin, tmin)
+        
+        counts = {}
+        events = sorted(set(event for event, _, _ in event_counts))
+        for event in events:
+            counts[event] = dict((t,0) for t in range(tmin, tmax, bin))
+        
+        if event_counts:
+            for event, t, n in event_counts:
+                tmin = t if tmin is None else min(t, tmin)
+                tmax = t if tmax is None else max(t, tmax)
+                counts[event][t] = n
+
+        def table_to_json(counts, events, tmin, tmax, bin):
+            yield '{ "events": [%s],\n' % (",".join(['"%s"' % (e,) for e in events]))
+            yield '  "rows": [\n'
+            for t in range(tmin, tmax+bin, bin):
+                row = [t] + [counts[e].get(t, 0) for e in events]
+                row = ",".join(["%s" % (x,) for x in row])
+                comma = "," if t < tmax else ""
+                yield "             [%s]%s\n" % (row, comma)
+            yield "     ]\n}"
+        return table_to_json(counts, events, tmin, tmax, bin), "text/json"
+ 
     def rate_histogram(self, req, rel_path, since_t=None, **args):
         since_t = self.decode_time(since_t)
         data = self.App.HistoryDB.getRecords("done", since_t)
