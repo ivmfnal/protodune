@@ -117,6 +117,45 @@ class Handler(WPHandler):
             for i in range(0, len(text), chunk):
                 yield text[i:i+chunk]
         return text_iter(json.dumps(points)), "text/json"
+        
+    Events = ["done", "failed", "quarantined"]
+        
+    def event_counts(self, req, rel_path, event_types=None, since_t=None, bin=None, **args):
+    
+        bin = self.decode_time(bin)   
+        bin = max(int(bin), 1.0)
+        #print "bin=",bin,"  since_t=",since_t
+        events = sorted(event_types.split(","))
+        tmin = int(self.decode_time(since_t)/bin)*bin
+        tmax = int((time.time()+bin-1)/bin)*bin
+        event_counts = self.App.HistoryDB.eventCounts(events, bin, tmin)
+        
+        counts = {}
+        events = set(self.Events) | set(event for event, _, _ in event_counts)
+        events = list(events)
+
+        if event_counts:
+            events = sorted(events)
+            for event in events:
+                counts[event] = dict((t,0) for t in range(tmin, tmax, bin))
+            for event, t, n in event_counts:
+                tmin = t if tmin is None else min(t, tmin)
+                tmax = t if tmax is None else max(t, tmax)
+                counts[event][t] = n
+
+        out = {
+            "events":   events,
+            "tmin":     tmin,
+            "tmax":     tmax,
+            "rows": [
+                [t] + [counts[e].get(t, 0) for e in events]
+                for t in range(tmin, tmax+bin, bin)
+            ]
+        }
+
+        return json.dumps(out), "text/json"
+        
+
 
 def as_dt_utc(t):
     from datetime import datetime
