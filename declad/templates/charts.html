@@ -33,12 +33,44 @@
 <div id="rate_histogram" style="width:100%; height:400px"></div>
 
 <script>
+    var scales = {
+          "day": {
+              "axisLabelInterval":    "minute",
+              "window":  "24h",
+              "windowSeconds":   24*3600,
+              "bin":    "1m",
+              "minPeriod":        "mm",
+              "balloonFormat":    "HH:NN"
+          },
+          
+          "week": {
+              "axisLabelInterval":    "10 minutes",
+              "window":  "7d",
+              "windowSeconds":   24*3600*7,
+              "bin":    "10m",
+              "minPeriod":        "mm",
+              "balloonFormat":    "HH:NN"
+          },
+          
+          "hour": {
+              "axisLabelInterval":    "10 seconds",
+              "window":  "1h",
+              "windowSeconds":   3600,
+              "bin":    "10s",
+              "minPeriod":        "ss",
+              "balloonFormat":    "HH:NN:SS"
+          }
+      };
+    
     function rate_histogram(div_id, url)
     {
         this.URL = url;
         this.Chart = new google.visualization.Histogram(document.getElementById(div_id));
-        this.request_data = function () {
-            var request = XMLRequest(this.URL, this);
+        this.request_data = function (scale) {
+            var w = scales[scale].window;
+            var bin = scales[scale].bin;
+            var url = this.URL + "?since_t=-"+w;
+            var request = XMLRequest(url, this);
         }
         this.data_received = function(data)
         {
@@ -61,8 +93,11 @@
     {
         this.URL = url;
         this.Chart = new google.visualization.ScatterChart(document.getElementById(div_id));
-        this.request_data = function () {
-            var request = XMLRequest(this.URL, this);
+        this.request_data = function (scale) {
+            var w = scales[scale].window;
+            var bin = scales[scale].bin;
+            var url = this.URL + "?since_t=-"+w;
+            var request = XMLRequest(url, this);
         }
         this.data_received = function(data)
         {
@@ -83,8 +118,11 @@
     {
         this.URL = url;
         this.Chart = new google.visualization.SteppedAreaChart(document.getElementById(div_id));
-        this.request_data = function () {
-            var request = XMLRequest(this.URL, this);
+        this.request_data = function (scale) {
+            var w = scales[scale].window;
+            var bin = scales[scale].bin;
+            var url = this.URL + "?since_t=-"+w + "&bin="+bin;
+            var request = XMLRequest(url, this);
         }
         this.data_received = function(data)
         {
@@ -106,8 +144,9 @@
     
     function refresh_charts()
     {
+        var w = document.getElementById("chart_window").value;
         if( events_count_chart != null )
-            events_count_chart.request_data();
+            events_count_chart.request_data(w);
     }
     
     function initCharts()
