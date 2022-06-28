@@ -1,7 +1,7 @@
 {% extends "template.html" %}
 
 {% block head %}
-<script src="{{GLOBAL_URLPrefix}}/static/chart_data.js"></script>
+<script src="{{GLOBAL_URLPrefix}}/static/requests.js"></script>
 
 <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
 
@@ -113,7 +113,7 @@
     
     function initCharts()
     {
-        events_count_chart = new event_counts("event_counts", "{{GLOBAL_URL_Prefix}}/event_counts");
+        events_count_chart = new event_counts("event_counts", "./event_counts");
         refresh_charts();
     }
 
