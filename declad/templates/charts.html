@@ -130,7 +130,9 @@
                 x.push(new Date((row.tend - row.elapsed/2)*1000));
                 var r = row.size/row.elapsed;
                 y.push(r);
-                width.push(row.elapsed/(data.tmax-data.tmin)*800);
+                var marker_size = row.elapsed/(data.tmax-data.tmin)*800;
+                if( marker_size < 3 )   marker_size = 3;
+                width.push(marker_size);
                 if( r > rmax )  rmax = r;
             }
             var vmax = 10;
