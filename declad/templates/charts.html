@@ -84,10 +84,10 @@
                     ymax = row.count;
             }
             var vmax = 10;
-            while( ymax >= vmax )
+            while( ymax > vmax )
             {
-                if( ymax >= vmax )  vmax *= 2;
-                if( ymax >= vmax )  vmax *= 5;
+                if( ymax > vmax )  vmax *= 2;
+                if( ymax > vmax )  vmax *= 5;
             }
             var trace = {
                 x: x,
@@ -121,11 +121,20 @@
             var x = [];
             var y = [];
             var width = [];
+            var rmax = 10;
             for( row of data )
             {
                 x.push(new Date(row.tend - row.elapsed/2)*1000);
-                y.push(row.size/row.elapsed);
+                var r = row.size/row.elapsed;
+                y.push(r);
                 width.push(row.elapsed*1000);
+                if( r > rmax )  rmax = r;
+            }
+            var vmax = 10;
+            while( rmax > vmax )
+            {
+                if( rmax > vmax )  vmax *= 2;
+                if( rmax > vmax )  vmax *= 5;
             }
             var trace = {
                 x: x,
@@ -138,7 +147,12 @@
                     visible: true 
                 }
             };
-            Plotly.react(this.Element, [trace]);
+            var layout = {
+                yaxis: {
+                    range: [0, vmax]
+                }
+            }
+            Plotly.react(this.Element, [trace], layout);
         }
     }
     
