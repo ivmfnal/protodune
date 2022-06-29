@@ -127,7 +127,7 @@
                 x.push(new Date(row.tend - row.elapsed/2)*1000);
                 var r = row.size/row.elapsed;
                 y.push(r);
-                width.push(row.elapsed*1000);
+                width.push(row.elapsed*100000);
                 if( r > rmax )  rmax = r;
             }
             var vmax = 10;
