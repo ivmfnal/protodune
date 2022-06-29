@@ -147,7 +147,12 @@ class Handler(WPHandler):
         def text_iter(text, chunk=1000000):
             for i in range(0, len(text), chunk):
                 yield text[i:i+chunk]
-        return text_iter(json.dumps(points)), "text/json"
+        out = json.dumps({
+            "tmin": since_t,
+            "tmax": time.time(),
+            "data": points
+        })
+        return text_iter(out), "text/json"
         
     Events = ["done", "failed", "quarantined"]
         
