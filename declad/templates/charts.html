@@ -89,6 +89,7 @@
                 x: x,
                 y: y,
                 mode: "lines",
+                fill: "tozeroy",
                 line: {shape: 'hv'},
                 type: 'scatter' 
             };
@@ -97,7 +98,7 @@
                     range: [0, ymax]
                 }
             }
-            Plotly.newPlot(this.Element, [trace], layout);
+            Plotly.react(this.Element, [trace], layout);
         }
     }
 
@@ -200,13 +201,15 @@
         refresh_charts();
     }
 
+    initCharts();
+
     setInterval( function() {
             if( document.getElementById("auto_refresh").checked )   
             {
                 refresh_charts();
             }
         },
-        10000)
+        60000)
     
 </script>
 
