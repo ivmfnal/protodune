@@ -128,7 +128,7 @@
             for( row of data.data )
             {
                 x.push(new Date((row.tend - row.elapsed/2)*1000));
-                var r = row.size/row.elapsed/1000000;
+                var r = row.size/row.elapsed;
                 y.push(r);
                 var marker_size = row.elapsed/(data.tmax-data.tmin)*1000;
                 if( marker_size < 5 )   marker_size = 5;
@@ -159,7 +159,7 @@
                     type: "log",
                     range: [-3, Math.log(vmax)],
                     title: {
-                        text: "Transfer rate, MB/s"
+                        text: "Transfer rate, B/s"
                     },
                 },
                 xaxis: {
