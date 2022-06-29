@@ -124,7 +124,7 @@
             var rmax = 10;
             for( row of data )
             {
-                x.push(new Date(row.tend - row.elapsed/2)*1000);
+                x.push(new Date((row.tend - row.elapsed/2)*1000));
                 var r = row.size/row.elapsed;
                 y.push(r);
                 width.push(row.elapsed*100000);
