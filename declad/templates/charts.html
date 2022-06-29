@@ -128,7 +128,7 @@
             for( row of data.data )
             {
                 x.push(new Date((row.tend - row.elapsed/2)*1000));
-                var r = row.size/row.elapsed;
+                var r = row.size/row.elapsed/1000000;
                 y.push(r);
                 var marker_size = row.elapsed/(data.tmax-data.tmin)*800;
                 if( marker_size < 5 )   marker_size = 5;
@@ -163,7 +163,15 @@
                     range: [
                         new Date(data.tmin*1000),
                         new Date(data.tmax*1000),
-                    ]
+                    ],
+                    title: {
+                        text: "Date/time"
+                    }
+                },
+                yaxis: {
+                    title: {
+                        text: "Transfer rate, MB/s"
+                    }   
                 }
             }
             Plotly.react(this.Element, [trace], layout);
