@@ -190,13 +190,15 @@
         refresh_charts();
     }
 
+    initCharts();
+
     setInterval( function() {
             if( document.getElementById("auto_refresh").checked )   
             {
                 refresh_charts();
             }
         },
-        10000)
+        60000)
     
 </script>
 
