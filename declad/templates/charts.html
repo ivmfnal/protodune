@@ -156,7 +156,10 @@
             };
             var layout = {
                 yaxis: {
-                    range: [0, vmax]
+                    range: [0, vmax],
+                    title: {
+                        text: "Transfer rate, MB/s"
+                    },
                 },
                 xaxis: {
                     type: "date",
@@ -167,11 +170,6 @@
                     title: {
                         text: "Date/time"
                     }
-                },
-                yaxis: {
-                    title: {
-                        text: "Transfer rate, MB/s"
-                    }   
                 }
             }
             Plotly.react(this.Element, [trace], layout);
