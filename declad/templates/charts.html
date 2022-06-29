@@ -123,7 +123,7 @@
         {
             var x = [];
             var y = [];
-            var width = [];
+            var marker_width = [];
             var rmax = 10;
             for( row of data.data )
             {
@@ -131,8 +131,8 @@
                 var r = row.size/row.elapsed;
                 y.push(r);
                 var marker_size = row.elapsed/(data.tmax-data.tmin)*800;
-                if( marker_size < 10 )   marker_size = 10;
-                width.push(marker_size);
+                if( marker_size < 5 )   marker_size = 5;
+                marker_width.push(marker_size);
                 if( r > rmax )  rmax = r;
             }
             var vmax = 10;
@@ -147,10 +147,10 @@
                 mode: "markers",
                 type: 'scatter',
                 marker: {
-                    symbol: "line-ew",
-                    size: 10,
+                    symbol: "line-ew-open",
+                    size: marker_width,
                     line: {
-                        width: 3
+                        width: 1
                     }
                 }
             };
