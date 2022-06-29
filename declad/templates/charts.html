@@ -84,10 +84,11 @@
                 x: x,
                 y: y,
                 mode: "lines",
+                fill: "tozeroy",
                 line: {shape: 'hv'},
                 type: 'scatter' 
             };
-            Plotly.newPlot(this.Element, [trace]);
+            Plotly.react(this.Element, [trace]);
         }
     }
 
