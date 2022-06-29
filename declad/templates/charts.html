@@ -147,7 +147,11 @@
                     range: [0, vmax]
                 },
                 xaxis: {
-                    type: "date"
+                    type: "date",
+                    range: [
+                        new Date(data.tmin*1000),
+                        new Date(data.tmax*1000),
+                    ]
                 }
             }
             Plotly.react(this.Element, [trace], layout);
