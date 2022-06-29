@@ -28,9 +28,9 @@
 </table>
 </p>
 
-<div id="event_chart" style="width:100%; height:400px"></div>
-<div id="rate_chart" style="width:100%; height:400px"></div>
-<div id="rate_histogram" style="width:100%; height:400px"></div>
+<div id="event_chart" style="width:400px; height:300px"></div>
+<div id="rate_chart" style="width:400px; height:300px"></div>
+<div id="rate_histogram" style="width:400px; height:300px"></div>
 
 <script>
     var scales = {
@@ -130,7 +130,7 @@
                 x.push(new Date((row.tend - row.elapsed/2)*1000));
                 var r = row.size/row.elapsed;
                 y.push(r);
-                width.push(row.elapsed*100000);
+                width.push(row.elapsed/(data.tmax-data.tmin)*400);
                 if( r > rmax )  rmax = r;
             }
             var vmax = 10;
@@ -146,7 +146,7 @@
                 type: 'scatter',
                 marker: {
                     symbol: "line-ew",
-                    size: 10,
+                    size: width,
                     line: {
                         width: 1
                     }
