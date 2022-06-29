@@ -28,9 +28,9 @@
 </table>
 </p>
 
-<div id="event_chart" style="width:800px; height:300px"></div>
-<div id="rate_chart" style="width:800px; height:300px"></div>
-<div id="rate_histogram" style="width:800px; height:300px"></div>
+<div id="event_chart" style="width:1000px; height:500px"></div>
+<div id="rate_chart" style="width:1000px; height:500px"></div>
+<div id="rate_histogram" style="width:1000px; height:500px"></div>
 
 <script>
     var scales = {
@@ -130,7 +130,7 @@
                 x.push(new Date((row.tend - row.elapsed/2)*1000));
                 var r = row.size/row.elapsed/1000000;
                 y.push(r);
-                var marker_size = row.elapsed/(data.tmax-data.tmin)*800;
+                var marker_size = row.elapsed/(data.tmax-data.tmin)*1000;
                 if( marker_size < 5 )   marker_size = 5;
                 marker_width.push(marker_size);
                 if( r > rmax )  rmax = r;
