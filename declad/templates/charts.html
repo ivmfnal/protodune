@@ -193,7 +193,11 @@
                     }
                 );
             }
-            var layout = {};
+            var layout = {
+                xaxis: {
+                    type: "date"
+                }
+            }
             Plotly.react(this.Element, traces, layout);
         }
     }
