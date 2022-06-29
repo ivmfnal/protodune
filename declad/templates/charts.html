@@ -156,7 +156,8 @@
             };
             var layout = {
                 yaxis: {
-                    range: [0, vmax],
+                    type: "log",
+                    range: [0, Math.log(vmax)],
                     title: {
                         text: "Transfer rate, MB/s"
                     },
