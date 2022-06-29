@@ -173,7 +173,7 @@
                 var event = data.events[i];
                 var x = [];
                 var y = [];
-                for( row in data.rows )
+                for( row of data.rows )
                 {
                     x.push(new Date(row[0]*1000));
                     y.push(row[i+1]);
