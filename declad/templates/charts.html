@@ -123,7 +123,7 @@
             var width = [];
             for( row of data )
             {
-                x.push(new Date(row.tend - row.elapsed/2)*1000));
+                x.push(new Date(row.tend - row.elapsed/2)*1000);
                 y.push(row.size/row.elapsed);
                 width.push(row.elapsed*1000);
             }
@@ -138,7 +138,7 @@
                     visible: true 
                 }
             };
-            Plotly.react(this.Element, [trace], layout);
+            Plotly.react(this.Element, [trace]);
         }
     }
     
