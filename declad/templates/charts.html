@@ -75,11 +75,16 @@
         {
             var x = [];
             var y = [];
+            var ymax = 0;
             for( row of data.data )
             {
                 x.push(row.rate/1000000);
                 y.push(row.count);
+                if( ymax < row.count )
+                    ymax = row.count;
             }
+            if( ymax < 10 )
+                ymax = 10;
             var trace = {
                 x: x,
                 y: y,
@@ -87,7 +92,12 @@
                 line: {shape: 'hv'},
                 type: 'scatter' 
             };
-            Plotly.newPlot(this.Element, [trace]);
+            var layout = {
+                yaxis: {
+                    range: [0, ymax]
+                }
+            }
+            Plotly.newPlot(this.Element, [trace], layout);
         }
     }
 
