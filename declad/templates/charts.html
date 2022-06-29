@@ -141,11 +141,6 @@
                 y: y,
                 mode: "markers",
                 type: 'scatter',
-                error_x: {
-                    type: "data",
-                    array: width,
-                    visible: true 
-                }
             };
             var layout = {
                 yaxis: {
@@ -162,7 +157,7 @@
     function EventCounts(div_id, url)
     {
         this.URL = url;
-        this.Chart = new google.visualization.SteppedAreaChart(document.getElementById(div_id));
+        this.Element = document.getElementById(div_id);
         this.request_data = function (scale) {
             var w = scales[scale].window;
             var bin = scales[scale].bin;
@@ -171,35 +166,30 @@
         }
         this.data_received = function(data)
         {
-            var options = {
-                lineWidth: 0.5,
-                isStacked: true,
-                vAxis: {    minValue: 0 },
-                series: {
-                    0: { color: "green" },
-                    1: { color: "red"   },
-                    2: { color: "blue"  }
-                },
-                hAxis: {
-                    format: 'M/d/yy hh:mm:ss'
-                }
-            };
-            var desc_row = [{type: 'datetime', label: 'Time'}];
-            for( e of data.events )
-                desc_row.push(e);
-            var rows = [desc_row];
-            var max_count = 0;
-            for(row of data.rows)
+            var traces = [];
+            var i;
+            for( i=0; i<data.events.length; i++ )
             {
-                row[0] = new Date(row[0]*1000);
-                rows.push(row);
-                for( var i=1; i<row.length; i++ )
-                    if( row[i] > max_count )
-                        max_count = row[i];
+                var event = events[i];
+                var x = [];
+                var y = [];
+                for( row in data.rows )
+                {
+                    x.push(new Date(row[0]*1000));
+                    y.push(row[i+1]);
+                }
+                traces.push(
+                    {
+                        x: x,
+                        y: y,
+                        mode: "scatter",
+                        type: "lines",
+                        stackgroup: "one"
+                    }
+                );
             }
-            if( max_count <= 10 )
-                options["vAxis"]["maxValue"] = 10; 
-            this.Chart.draw(google.visualization.arrayToDataTable(rows), options)
+            var layout = {};
+            Plotly.react(this.Element, traces, layout);
         }
     }
     
@@ -210,8 +200,8 @@
     function refresh_charts()
     {
         var w = document.getElementById("chart_window").value;
-        //if( events_counts_chart != null )
-        //    events_counts_chart.request_data(w);
+        if( events_counts_chart != null )
+            events_counts_chart.request_data(w);
         if( rate_chart != null )
             rate_chart.request_data(w);
         if( rate_histogram != null )
@@ -220,7 +210,7 @@
     
     function initCharts()
     {
-        //events_counts_chart = new EventCounts("event_chart", "./event_counts");
+        events_counts_chart = new EventCounts("event_chart", "./event_counts");
         rate_chart = new Rates("rate_chart", "./transfer_rates");
         rate_histogram = new RateHistogram("rate_histogram", "./rate_histogram");
         refresh_charts();
