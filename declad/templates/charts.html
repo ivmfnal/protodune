@@ -101,7 +101,15 @@
                 type: 'scatter' 
             };
             var layout = {
+                xaxis: {
+                    title: {
+                        text: "Rate, MB/s"
+                    }
+                },
                 yaxis: {
+                    title: {
+                        text: "Count"
+                    }
                     range: [0, vmax]
                 }
             }
@@ -226,6 +234,11 @@
             var layout = {
                 xaxis: {
                     type: "date"
+                },
+                yaxis: {
+                    title: {
+                        text: "Event count"
+                    }
                 }
             }
             Plotly.react(this.Element, traces, layout);
