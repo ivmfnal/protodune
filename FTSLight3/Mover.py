@@ -64,17 +64,17 @@ class FileMoverTask(Task, Logged):
             self.failed("File mover exception: %s" % (traceback.format_exc(),))
         self.debug("Mover %s ended" % (self.FileName,))
         
-    def log(self, *what):
-        Logged.log(self, *what)
+    def log_record(self, *what):
+        self.log(*what)
         self.Logger.log(self.LogName+":", *what)
 
     def updateStatus(self, status):
         self.Status = status
         self.Manager.HistoryDB.addFileRecord(self.FileName, status, "")
-        self.log(status)
+        self.log_record(status)
         
     def do_run(self):
-        self.log("started")
+        self.log_record("started")
         self.TransferStarted = time.time()
 
         #
@@ -98,8 +98,8 @@ class FileMoverTask(Task, Logged):
             if "file_size" not in metadata or "checksum" not in metadata:
                 return self.failed("metadata does not include size or checksum")
         except: 
-            self.log("metadata parsing error: %s" % (traceback.format_exc(),))
-            self.log("metadata file contents -------\n%s\n----- end if metadata file contents -----" % (open(meta_tmp, "r").read(),))
+            self.log_record("metadata parsing error: %s" % (traceback.format_exc(),))
+            self.log_record("metadata file contents -------\n%s\n----- end if metadata file contents -----" % (open(meta_tmp, "r").read(),))
             self.failed("Metadata parse error")
             return
         finally:
@@ -119,13 +119,11 @@ class FileMoverTask(Task, Logged):
         if done:
             if request.Failed:
                 msg = f"Data transfer failed: {request.Error}"
-                self.log(msg)
                 self.failed(msg)
                 return
         else:
             # timeout
             msg = "Data transfer timeout"
-            self.log(msg)
             self.failed(msg)
             return
 
@@ -139,13 +137,11 @@ class FileMoverTask(Task, Logged):
         if done:
             if request.Failed:
                 msg = f"Metadata transfer failed: {request.Error}"
-                self.log(msg)
                 self.failed(msg)
                 return
         else:
             # timeout
             msg = "Metadata transfer timeout"
-            self.log(msg)
             self.failed(msg)
             return
 
@@ -194,14 +190,14 @@ class FileMoverTask(Task, Logged):
         self.Reason = reason
         self.Ended = True
         self.Success = False
-        self.log("failed: %s" % (reason,))
+        self.log_record("failed: %s" % (reason,))
         self.Manager.moverFailed(self, reason)
 
     def succeeded(self):
         #self.debug("succeeded(%s)" % (self.FileName,))
         self.Ended = True
         self.Success = True
-        self.log("done")
+        self.log_record("done")
         self.Manager.moverSucceeded(self)
         
 class MyConfigParser(ConfigParser):
@@ -432,8 +428,8 @@ class Manager(PyThread, Logged):
     def getConfig(self):
         return self.Config.asList()
     
-    def log(self, *what):
-        Logged.log(self, *what)
+    def log_record(self, *what):
+        self.log(*what)
         self.Logger.log(self.LogName + ":", *what)
         
     def getLog(self):
@@ -447,7 +443,7 @@ class Manager(PyThread, Logged):
         self.Held = True
         self.MoverQueue.hold()
         self.HistoryDB.setConfig("held", "yes")
-        self.log("held")
+        self.log_record("held")
      
     @synchronized
     def release(self):
@@ -455,7 +451,7 @@ class Manager(PyThread, Logged):
         self.MoverQueue.release() 
         self.wakeup()
         self.HistoryDB.setConfig("held", "no")
-        self.log("released")
+        self.log_record("released")
      
     @synchronized
     def file_lists(self):
@@ -510,7 +506,7 @@ class Manager(PyThread, Logged):
     def retryLater(self, desc):
         filename = desc.Name
         t = self.RetryInterval + time.time()
-        self.log("will retry %s after %s" % (filename, time.ctime(t)))
+        self.log_record("will retry %s after %s" % (filename, time.ctime(t)))
         self.RetryQueue[filename] = (t, desc)
         
         
@@ -534,7 +530,7 @@ class Manager(PyThread, Logged):
         #, self.TempDir,
         #        self.SourcePurge, self.ChecksumRequired, self.TransferTimeout)
         self.MoverQueue.addTask(mover_task)
-        self.log("file queued: %s" % (desc,))
+        self.log_record("file queued: %s" % (desc,))
         self.debug("Added to queue: %s" % (desc,))
         self.HistoryDB.fileQueued(desc.Name)
                 
@@ -561,7 +557,7 @@ class Manager(PyThread, Logged):
                     
     @synchronized
     def retryNow(self, filename):
-        self.log("retry now requested for %s" % (filename,))
+        self.log_record("retry now requested for %s" % (filename,))
         if filename in self.RetryQueue:
             t, desc = self.RetryQueue[filename]
             del self.RetryQueue[filename]

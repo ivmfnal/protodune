@@ -122,7 +122,7 @@ class Scanner(PyThread, Logged):
 
         out = [desc for desc in file_descs
             if desc.Name in meta_names
-                and any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns 
+                and any(fnmatch.fnmatch(desc.Name, pattern)) for pattern in self.FilenamePatterns 
         ]
         return out, None
 
