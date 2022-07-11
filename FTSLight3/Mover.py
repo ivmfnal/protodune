@@ -223,7 +223,9 @@ class Configuration(object):
         self.KeepHistoryInterval = int(config.get("Mover", "KeepHistoryInterval", 3600*24))
         self.KeepLogInterval = int(config.get("Mover", "KeepLogInterval", 3600))
         self.MaxMovers = int(config.get("Mover", "MaxMovers", 10))
-        self.QueueCapacity = int(config.get("Mover", "QueueCapacity", None))
+        self.QueueCapacity = config.get("Mover", "QueueCapacity", None)
+        if self.QueueCapacity is not None:
+            self.QueueCapacity = int(self.QueueCapacity)
         self.SourcePurge = "none"
         self.DeleteSource = config.get("Mover", "DeleteSource", "no") == "yes"
         if self.DeleteSource:
