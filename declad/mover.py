@@ -105,7 +105,7 @@ class MoverTask(Task, Logged):
                 type, value = "adler32", ck
         out["checksum"] = [f"{type}:{value}"]
         out.pop("events", None)
-        print("sam_metadata:"), pprint.pprint(out)
+        #print("sam_metadata:"), pprint.pprint(out)
         return out
 
     def file_scope(self, desc, metadata):
