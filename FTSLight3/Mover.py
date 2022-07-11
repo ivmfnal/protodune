@@ -389,7 +389,7 @@ class Manager(PyThread, Logged):
         self.KeepHistoryInterval = self.Config.KeepHistoryInterval
         self.ChecksumRequired = self.Config.ChecksumRequired
         self.MaxMovers = self.Config.MaxMovers
-        self.QueueCapacity = elf.Config.QueueCapacity
+        self.QueueCapacity = self.Config.QueueCapacity
         self.SourcePurge = self.Config.SourcePurge
         self.Logger = Logger(self.Config.KeepLogInterval)
         self.DatabaseFile = self.Config.DatabaseFile
