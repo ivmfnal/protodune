@@ -27,7 +27,7 @@ class FileDescriptor(object):
 
 class ScanManager(Primitive, Logged):
 
-    def __init__(self, manager, config, held=False):
+    def __init__(self, manager, history_db, config, held):
         Primitive.__init__(self)
         Logged.__init__(self, "ScanManager")
         self.ServersLocations = config.ScanServersLocations   # [ (server, location), ... ]
@@ -43,7 +43,7 @@ class ScanManager(Primitive, Logged):
         dt = self.StaggerInterval/len(self.ServersLocations)
         for i, (server, location) in enumerate(self.ServersLocations):
             if i > 0:   time.sleep(dt)
-            s = Scanner(self.Manager, server, location, self.Config)
+            s = Scanner(self.Manager, self.HistoryDB, server, location, self.Config)
             self.Scanners[(server, location)] = s
             if self.Held:   s.hold()
             s.start()
@@ -77,11 +77,11 @@ class Scanner(PyThread, Logged):
 
     PrescaleMultiplier = 10000
 
-    def __init__(self, manager, server, location, config):
+    def __init__(self, manager, history_db, server, location, config):
         PyThread.__init__(self)
-        my_id = ("%x" % (id(self),))[-4:]
-        Logged.__init__(self, f"Scanner@{my_id}")
+        Logged.__init__(self, name=f"Scanner({server}:{location})")
         self.Manager = manager
+        self.HistoryDB = history_db
         self.Server, self.Location = server, location
         self.FilenamePatterns = config.FilenamePatterns
         self.lsCommandTemplate = config.lsCommandTemplate\
@@ -99,7 +99,12 @@ class Scanner(PyThread, Logged):
         self.OperationTimeout = config.ScannerOperationTimeout
         
         self.Held = False
+        self.Stop = False
         self.debug("initiated")
+        
+    def stop(self):
+        self.Stop = True
+        self.wakeup()
                 
     def passesPrescale(self, fn):
         return (hash(fn + self.PrescaleSalt) % self.PrescaleMultiplier) < self.PrescaleFactor
@@ -108,30 +113,18 @@ class Scanner(PyThread, Logged):
     def scan(self):
         status, error, file_descs = self.listFilesUnder(self.Location)
         self.log("scan status:", status, "  error:", error or "-", "  files:", len(file_descs))
-        if status == 0:
-            data_files = {}     # fn -> desc
-            # 1. scan for data files
-            for desc in file_descs:
-                fn = desc.Name
-                #fn = path.rsplit("/", 1)[-1]
-                #print("fn:", desc.Name, "  match:", any(fnmatch.fnmatch(fn, pattern) for pattern in self.FilenamePatterns),
-                #              "  new:", self.Manager.newFile(fn))
-                if any(fnmatch.fnmatch(fn, pattern) for pattern in self.FilenamePatterns) \
-                                and self.Manager.newFile(fn):
-                    if self.passesPrescale(fn):
-                        data_files[fn] = desc
-                    else:
-                        self.debug("File rejected by prescaling: %s" % (fn,))
-            self.debug("scanner: data_files:" + str(data_files))
-            # 2. scan for metadata files
-            for desc in file_descs:
-                fn = desc.Name
-                if fn.endswith(".json"):
-                    data_fn = fn[:-5]
-                    if data_fn in data_files:
-                        desc = data_files[data_fn]
-                        self.Manager.addFile(desc)
-                        self.debug("File is ready: %s" % (desc,))
+        if status:
+            return [], error
+        
+        meta_names = {desc.Name[:-5] for desc in file_descs
+            if desc.Name.endswith(".json")
+        }
+
+        out = [desc for desc in file_descs
+            if desc.Name in meta_names
+                and any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns 
+        ]
+        return out, None
 
     def listFilesUnder(self, location):
         out = []
@@ -198,12 +191,21 @@ class Scanner(PyThread, Logged):
         self.wakeup()
 
     def run(self):
-        while True:
-            if not self.Held:
+        while not self.Stop:
+            if not self.Held and not self.Stop:
                 try:
-                    self.scan()
+                    descs, error = self.scan()
                 except Exception as e:
+                    descs = []
                     error = "scan() error: " + traceback.format_exc()
                     self.error(error)
-            self.debug("waiting...")
+                else:
+                    if error:
+                        self.error(error)
+                    new_files = [desc for desc in descs if self.Manager.newFile(desc.Name)]
+                    self.HistoryDB.add_scanner_record(self.Server, self.Location, time.time(), len(descs), len(new_files))
+                    self.debug("Files found:", len(descs),"   new:", len(new_files))
+                    for desc in new_files:
+                        self.Manager.addFile(desc)
+                        self.debug(f"added {desc.Name}")
             self.sleep(self.ScanInterval)

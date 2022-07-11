@@ -417,7 +417,7 @@ class Manager(PyThread, Logged):
             self.GraphiteInterface = GraphiteInterface(self.Config.GraphiteHost, 
                 self.Config.GraphitePort, self.Config.GraphiteNamespace)
                 
-        self.ScanMgr = ScanManager(self, config, held)
+        self.ScanMgr = ScanManager(self, self.HistoryDB, config, held)
         self.debug("Manager created. Held=", held)
         
     def userPassword(self, username):
@@ -598,13 +598,12 @@ if __name__ == "__main__":
     config = Configuration(config)
     
     log_file = opts.get("-l", config.LogFile)
-    logs.init_logger(log_file, "-d" in opts)
+    logs.init_logger(log_file, debug_enabled = "-d" in opts)
 
     history_db = historydb.open(config.DatabaseFile)
     
     held = history_db.getConfig().get("held", "no") == "yes"
 
-    
     manager = Manager(config, held, history_db)
     
     #debug("Scanned locations: %s" % (config.ScanServersLocations,))

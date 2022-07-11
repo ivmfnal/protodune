@@ -1,6 +1,15 @@
 import sqlite3, time
 from pythreader import Primitive, synchronized
 
+class _ScannerRecord(object):
+    def __init__(self, server, location, t, nfiles, nnew, error):
+        self.Server = server
+        self.Location = location
+        self.T = t
+        self.NFiles = nfiles
+        self.NNew = nfiles
+        self.Error = error
+
 class _HistoryDB(Primitive):
 
     def __init__(self, filename):
@@ -53,6 +62,18 @@ class _HistoryDB(Primitive):
             c.execute("""
                 create index if not exists file_log_fn_event_inx on file_log(filename, event)
                 """)
+            c.execute("""
+                create table if not exists scanner_log(
+                    server      text,
+                    location    text,
+                    t           float,
+                    nfiles      int,
+                    nnew        int,
+                    error       text,
+                    primary key(server, location, t)
+                )
+            """)
+            
 
     @synchronized
     def getConfig(self):
@@ -73,6 +94,26 @@ class _HistoryDB(Primitive):
             conn.commit()
             
     @synchronized
+    def add_scanner_record(self, server, location, t, n, nnew):
+        with self.dbconn() as conn:
+            c = conn.cursor()
+            c.execute("insert into scanner_log(server, location, t, nfiles, nnew) values(?,?,?,?,?)",
+                (server, location, t, n, nnew)
+            )
+            conn.commit()
+            
+    @synchronized
+    def scannerHistorySince(self, t=0):
+        with self.dbconn() as conn:
+            c = conn.cursor()
+            c.execute("""select server, location, t, nfiles, nnew, error
+                    from scanner_log 
+                    where tend >= ?
+                    order by scanner, location, t""", (t,)
+            )
+            return [_ScannerRecord(*tup) for tup in c.fetchall()]
+
+    @synchronized
     def fileQueued(self, filename):
         #self.log("file queued: %s" % (filename,)
         self.addFileRecord(filename, "queued", "")     
@@ -86,7 +127,6 @@ class _HistoryDB(Primitive):
     def fileFailed(self, filename, reason):
         self.addFileRecord(filename, "failed", reason)
         
-                    
     @synchronized
     def addFileRecord(self, filename, event, info, size=None, elapsed=None):
         with self.dbconn() as conn:
@@ -132,12 +172,12 @@ class _HistoryDB(Primitive):
             """, (t,))
             return c.fetchall()
         
-            
     @synchronized
     def purgeOldRecords(self, before):
         with self.dbconn() as conn:
             c = conn.cursor()
             c.execute("delete from file_log where t < ?", (before,))
+            c.execute("delete from scanner_log where t < ?", (before,))
             conn.commit()
             
     @synchronized
