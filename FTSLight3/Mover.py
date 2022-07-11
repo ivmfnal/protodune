@@ -9,7 +9,7 @@ from logs import Logged
 from uid import uid
 
 class FileMoverTask(Task, Logged):
-    def __init__(self, manager, config, fts_client, logger, filedesc):
+    def __init__(self, manager, config, fts_client, memory_log, filedesc):
         Task.__init__(self)
         self.ID = uid()
         self.LogName = f"MoverTask({filedesc.Name})"
@@ -44,7 +44,7 @@ class FileMoverTask(Task, Logged):
         self.Log = []       # [(timestamp, text),]
         self.Status = "starting"
         self.Created = time.time()
-        self.Logger = logger
+        self.MemoryLogger = memory_log
         self.TransferTimeout = config.TransferTimeout
         self.TransferTime = None
         self.TransferStarted = None
@@ -66,7 +66,7 @@ class FileMoverTask(Task, Logged):
         
     def log_record(self, *what):
         self.log(*what)
-        self.Logger.log(self.LogName+":", *what)
+        self.MemoryLogger.log(self.LogName+":", *what)
 
     def updateStatus(self, status):
         self.Status = status
@@ -310,7 +310,7 @@ class Configuration(object):
         return lst
         
         
-class Logger(Primitive):
+class MemoryLog(Primitive):
 
     def __init__(self, time_to_keep):
         Primitive.__init__(self)
@@ -391,7 +391,7 @@ class Manager(PyThread, Logged):
         self.MaxMovers = self.Config.MaxMovers
         self.QueueCapacity = self.Config.QueueCapacity
         self.SourcePurge = self.Config.SourcePurge
-        self.Logger = Logger(self.Config.KeepLogInterval)
+        self.MemoryLogger = MemoryLog(self.Config.KeepLogInterval)
         self.DatabaseFile = self.Config.DatabaseFile
         self.TransferTimeout = self.Config.TransferTimeout
         self.StaggerInterval = self.Config.StaggerInterval
@@ -432,10 +432,10 @@ class Manager(PyThread, Logged):
     
     def log_record(self, *what):
         self.log(*what)
-        self.Logger.log(self.LogName + ":", *what)
+        self.MemoryLog.log(self.LogName + ":", *what)
         
     def getLog(self):
-        return self.Logger.getLog()
+        return self.MemoryLog.getLog()
         
     def getHistory(self, filename=None):
         return self.HistoryDB.historyByFile(filename=filename, window=24*3600)
@@ -528,7 +528,7 @@ class Manager(PyThread, Logged):
         
     @synchronized                         
     def addFile(self, desc):
-        mover_task = FileMoverTask(self, self.Config, self.FTS3, self.Logger, desc)
+        mover_task = FileMoverTask(self, self.Config, self.FTS3, self.MemoryLog, desc)
         #, self.TempDir,
         #        self.SourcePurge, self.ChecksumRequired, self.TransferTimeout)
         self.MoverQueue.addTask(mover_task)
