@@ -138,15 +138,23 @@ class Handler(WPHandler):
         tmin = int(since_t/bin)*bin
         tmax = math.ceil(time.time()/bin)*bin
 
-        nnew_timeline = [None]*((tmax-tmin)//bin)
-        nfiles_timeline = [None]*((tmax-tmin)//bin)
+        nbins = (tmax-tmin)//bin
+        nnew_timeline = [0]*nbins
+        nfiles_timeline = [0]*nbins
+        nn = [0]*nbins
         
         for record in self.App.HistoryDB.scannerHistorySince(since_t):
             i = int((record.T-tmin)/bin)
             if not record.Error:
-                nnew_timeline[i] = (nnew_timeline[i] or 0) + record.NNew
-                nfiles_timeline[i] = (nfiles_timeline[i] or 0) + record.NFiles
-
+                nnew_timeline[i] += record.NNew
+                nfiles_timeline[i] += record.NFiles
+                nn[i] += 1
+        
+        for in in range(nbins):
+            if nn[i]:
+                nnew_timeline[i] = nnew_timeline[i]/nn[i]
+                nfiles_timeline[i] = nfiles_timeline[i]/nn[i]
+        
         return json.dumps(
             {
                 "tmin":     tmin,
