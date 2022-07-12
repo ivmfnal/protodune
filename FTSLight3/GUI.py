@@ -5,7 +5,7 @@ from webpie import WPApp, Response, WPHandler, HTTPServer, WPStaticHandler
 from Version import Version
 from WebService import WSHandler
 
-import time
+import time, math
 
 class Handler(WPHandler):
 
@@ -138,10 +138,10 @@ class Handler(WPHandler):
         tmin = int(since_t/bin)*bin
         tmax = math.ceil(time.time()/bin)*bin
 
-        nnew_timeline = [None]*((tmax-tmin)/bin)
-        nfiles_timeline = [None]*((tmax-tmin)/bin)
+        nnew_timeline = [None]*((tmax-tmin)//bin)
+        nfiles_timeline = [None]*((tmax-tmin)//bin)
         
-        for record in self.HistoryDB.scannerHistorySince(since_t):
+        for record in self.App.HistoryDB.scannerHistorySince(since_t):
             i = int((record.T-tmin)/bin)
             if not record.Error:
                 nnew_timeline[i] = (nnew_timeline[i] or 0) + record.NNew
@@ -153,7 +153,7 @@ class Handler(WPHandler):
                 "tmax":     tmax,
                 "bin":      bin,
                 "nfiles":   nfiles_timeline,
-                "nnew":     new_timeline
+                "nnew":     nnew_timeline
             }
         ), "text/json"
         
@@ -300,10 +300,10 @@ class App(WPApp):
             }
         )
 
-def GUIThread(config, manager, scanmgr):
+def GUIThread(config, manager, scanmgr, history_db):
     port = config.HTTPPort
     prefix = config.GUIPrefix
-    app = App(prefix, manager, scanmgr)
+    app = App(prefix, manager, scanmgr, history_db)
     return HTTPServer(port, app)
                 
             

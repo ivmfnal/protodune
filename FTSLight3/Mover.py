@@ -432,10 +432,10 @@ class Manager(PyThread, Logged):
     
     def log_record(self, *what):
         self.log(*what)
-        self.MemoryLog.log(self.LogName + ":", *what)
+        self.MemoryLogger.log(self.LogName + ":", *what)
         
     def getLog(self):
-        return self.MemoryLog.getLog()
+        return self.MemoryLogger.getLog()
         
     def getHistory(self, filename=None):
         return self.HistoryDB.historyByFile(filename=filename, window=24*3600)
@@ -528,7 +528,7 @@ class Manager(PyThread, Logged):
         
     @synchronized                         
     def addFile(self, desc):
-        mover_task = FileMoverTask(self, self.Config, self.FTS3, self.MemoryLog, desc)
+        mover_task = FileMoverTask(self, self.Config, self.FTS3, self.MemoryLogger, desc)
         #, self.TempDir,
         #        self.SourcePurge, self.ChecksumRequired, self.TransferTimeout)
         self.MoverQueue.addTask(mover_task)
@@ -607,7 +607,7 @@ if __name__ == "__main__":
     #debug("Scanned locations: %s" % (config.ScanServersLocations,))
     
     home = os.path.dirname(__file__)
-    gui = GUIThread(config, manager, manager.ScanMgr)
+    gui = GUIThread(config, manager, manager.ScanMgr, history_db)
     gui.start()
   
     manager.start()

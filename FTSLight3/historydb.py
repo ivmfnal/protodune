@@ -108,8 +108,8 @@ class _HistoryDB(Primitive):
             c = conn.cursor()
             c.execute("""select server, location, t, nfiles, nnew, error
                     from scanner_log 
-                    where tend >= ?
-                    order by scanner, location, t""", (t,)
+                    where t >= ?
+                    order by server, location, t""", (t,)
             )
             return [_ScannerRecord(*tup) for tup in c.fetchall()]
 
