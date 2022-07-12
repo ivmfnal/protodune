@@ -38,7 +38,7 @@ function data_received_callback()
             c.data_received(parsed);
 }
 
-function XMLRequest(url, receiver, cacheable)
+function HTTPRequest(url, receiver, cacheable)
 {
     var http_request = XML_HTTP();
     http_request.data_receiver = receiver;
