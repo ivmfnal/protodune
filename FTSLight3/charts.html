@@ -1,28 +1,14 @@
 {% extends "template.html" %}
 
 {% block head %}
-<script src="{{GLOBAL_URLPrefix}}/static/chart_data.js"></script>
-
-<!-- Dygraph -->
-<!--
-<script src="//cdnjs.cloudflare.com/ajax/libs/dygraph/2.0.0/dygraph.min.js"></script>
-<link rel="stylesheet" src="//cdnjs.cloudflare.com/ajax/libs/dygraph/2.0.0/dygraph.min.css" />
--->
-
-<!-- AmCharts -->
-<script src="https://www.amcharts.com/lib/3/amcharts.js"></script>
-<script src="https://www.amcharts.com/lib/3/serial.js"></script>
-<script src="https://www.amcharts.com/lib/3/xy.js"></script>
-<script src="https://www.amcharts.com/lib/3/plugins/export/export.min.js"></script>
-<link rel="stylesheet" href="https://www.amcharts.com/lib/3/plugins/export/export.css" type="text/css" media="all" />
-<script src="https://www.amcharts.com/lib/3/themes/light.js"></script>
-
+<script src="{{GLOBAL_AppTopPath}}/static/requests.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.12.1.min.js"></script>
 
 {% endblock %}
 
 {% block contents %}
 
-<h2>FTS-light charts</h2>
+<h2>Ingestion Daemon Charts</h2>
 
 <p>
 <table class="formatting" style="width:100%">
@@ -43,6 +29,7 @@
 </p>
 
 <div id="event_chart" style="width:100%; height:400px"></div>
+<div id="scanner_chart" style="width:100%; height:400px"></div>
 <div id="rate_chart" style="width:100%; height:400px"></div>
 <div id="rate_histogram" style="width:100%; height:400px"></div>
 
@@ -77,398 +64,285 @@
         };
         
 
-    function chart_amchart(id, url_head, columns)
-    {
-        // columns: [ { "name":..., "color":... } ]
-        this.URLHead = url_head;
-        this.id = id;
-
-        this.graphs = [];
-        this.columns = columns;
-        this.scale = "day";
-            
-        for( i in columns )
+        function RateHistogram(div_id, url)
         {
-            var cn = columns[i].name;
-            var cc = columns[i].color;
-            
-            this.graphs.push({
-                "title":            cn,
-                "valueField":       cn,
-                "lineThickness":    1.0,
-                "lineAlpha":        1.0,
-                "fillAlphas":       0.2,
-                "type":             "step",
-                //"columnWidth":      1,
-                "balloonText":      columns[i].name+": [[value]]",
-                "lineColor":        cc,
-                "fillColor":        cc
-                });
-
-
-        }
-
-        this.options = {
-            "type": "serial",     
-            "dataProvider": [],
-            "graphs":   this.graphs,
-            "categoryField":    "t",
-            "chartCursor": {
-                enabled:    true,
-                categoryBalloonDateFormat:  "HH:NN:SS"
-            },
-            legend: {
-                "enabled":  true,
-                "useGraphSettings": true
-                },
-            valueAxes: [
+            this.URL = url;
+            this.Element = document.getElementById(div_id);
+            this.request_data = function (scale) {
+                var w = scales[scale].window;
+                var url = this.URL + "?since_t=-"+w;
+                var request = HTTPRequest(url, this);
+            }
+            this.data_received = function(data)
+            {
+                document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
+                var x = [];
+                var y = [];
+                var ymax = 1;
+                for( row of data.data )
                 {
-                    "id":   "count-axis",
-                    //"stackType":    "regular",
-                    "title":        "event count/minute",
-                    "logarithmic":  false
+                    x.push(row.rate/1000000);
+                    y.push(row.count);
+                    if( ymax < row.count )
+                        ymax = row.count;
                 }
-            ],
-            "categoryAxis": {   
-                minPeriod:  "mm",
-                "parseDates": true,
-                "dateFormats":
-                    [ 
-                        { "period":"fff",     "format":"JJ:NN:SS"  },
-                        { "period":"ss",     "format":"JJ:NN:SS"  },
-                        { "period":"mm",     "format":"JJ:NN:SS"  },
-                        { "period":"hh",     "format":"JJ:NN"  },
-                        { "period":"DD",     "format":"MMM DD, JJ:NN"  },
-                        { "period":"WW",     "format":"MMM DD, JJ"  },
-                        { "period":"MM",     "format":"MMM DD"  },
-                        { "period":"YYYY",     "format":"MMM YYYY"  }
-                    ]
-                },
-            "export": {
-                "enabled":  true
+                var trace = {
+                    x: x,
+                    y: y,
+                    mode: "lines",
+                    fill: "tozeroy",
+                    line: {
+                        shape: 'hv',
+                        width: 0
+                    },
+                    type: 'scatter' 
+                };
+                var layout = {
+                    xaxis: {
+                        title: {
+                            text: "Rate, MB/s"
+                        }
+                    },
+                    yaxis: {
+                        title: {
+                            text: "Count"
+                        },
+                        type: "log",
+                        range: [-0.5, Math.ceil(Math.log10(ymax))+0.5]
+                    }
+                }
+                Plotly.react(this.Element, [trace], layout);
             }
-
-        } 
-
-        this.chart = AmCharts.makeChart(this.id, this.options);
-
-        this.set_scale = function(w)
-        {
-            this.scale = w;
         }
-        
-        this.data_received = function(data)
+
+        function Rates(div_id, url)
         {
-            var converted = new Array();
-            var i;
-            var columns = data.events;
-            var rows = data.rows;
-            for( i in rows )
-            {
-                var row_in = rows[i];
-                var row_out = {};
-                var j;
-                for ( j in row_in )
-                    if( j == 0 )     
-                        row_out["t"] = new Date(row_in[0]*1000);     // time column
-                    else
-                        row_out[columns[j-1]] = row_in[j];
-                converted.push(row_out);
+            this.URL = url;
+            this.Element = document.getElementById(div_id);
+            this.request_data = function (scale) {
+                var w = scales[scale].window;
+                var bin = scales[scale].bin;
+                var url = this.URL + "?since_t=-"+w;
+                var request = HTTPRequest(url, this);
             }
-
-            
         
-            this.chart.categoryAxis.minPeriod = scales[this.scale].minPeriod;
-            this.chart.chartCursor.categoryBalloonDateFormat = scales[this.scale].balloonFormat;
-            this.chart.valueAxes[0].title = "Events / "+scales[this.scale].axisLabelInterval;
-            this.data = converted;
-            this.chart.dataProvider = converted;
-            this.chart.validateData();
-            
-        }
-        
-        this.clear = function()
-        {
-            if( this.chart )
+            this.data_received = function(data)
             {
-                this.chart.clear();
-                this.chart = null;
-            }    
-        }
-        
-        this.update = function(scale)
-        {
-            this.set_scale(scale);
-            var bin = scales[scale].bin;
-            var window = scales[scale].window;
-            var url = this.URLHead + "?since_t=-"+window + "&bin="+bin;
-            var event_types = "";
-            for ( i in this.columns )
-            {
-                if( event_types != "" )
-                    event_types += ",";
-                event_types += this.columns[i].name;
-            }
-            url += "&event_types=" + event_types;
-            this.request = XMLRequest(url, this, false);
-        }
-        
-        this.addListener = function(what, handler){
-            this.chart.addListener(what, handler);
-        }
-    }
-    
-    var the_event_chart = new chart_amchart("event_chart", "./event_counts",
-        [
-            {   "name": "discovered",       "color":    "#222288"   },
-            {   "name": "done",             "color":    "#22aa22"   },
-            {   "name": "failed",           "color":    "#ff2222"   }
-        ]
-    );
-    
-    the_event_chart.addListener("dataUpdated", 
-        function()
-        {
-            var o = document.getElementById("refreshed_at");
-            o.innerHTML=""+new Date();
-            o.style.color="black";
-            setTimeout(function()
-            {
-                o.style.color="#888";
-                setTimeout(function()
+                document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
+                var x = [];
+                var y = [];
+                var marker_width = [];
+                var rmax = null;
+                var rmin = null;
+                for( row of data.data )
                 {
-                    o.style.color="#AAA";
-                }, 1000);
-            }, 1000);
-        }); 
-        
-    function rate_chart(id, url_head)
-    {
-        this.URLHead = url_head;
-        this.id = id;
+                    x.push(new Date((row.tend - row.elapsed/2)*1000));
+                    var r = row.size/row.elapsed;
+                    y.push(r);
+                    var marker_size = row.elapsed/(data.tmax-data.tmin)*1000;
+                    marker_size = 2;
+                    if( marker_size < 5 )   marker_size = 5;
+                    marker_width.push(marker_size);
+                    if( rmax == null || r > rmax )  rmax = r;
+                    if( rmin == null || r < rmin )  rmin = r;
+                }
+            
+                if( rmin == null )  rmin = 1.0;
+                if( rmax == null )  rmax = 10.0;
 
-        this.graphs = [
-            {
-                "bullet":           "round",
-                "bulletSize":       1,
-                "bulletAlpha":      0.0,
-                "xField":           "tmid",
-                "yField":           "rate",
-                "balloonText":      "[[y]] MB/sec",
-                "lineAlpha":        0
+                var vmax = Math.ceil(Math.log10(rmax))+0.5;
+                var vmin = Math.floor(Math.log10(rmin))-0.5;
+            
+                var trace = {
+                    x: x,
+                    y: y,
+                    mode: "markers",
+                    type: 'scatter',
+                    marker: {
+                        symbol: "line-ew-open",
+                        size: marker_width,
+                        line: {
+                            width: 1.5
+                        },
+                        opacity: 0.8
+                    }
+                };
+                var layout = {
+                    yaxis: {
+                        type: "log",
+                        range: [vmin, vmax],
+                        title: {
+                            text: "Transfer rate, B/s"
+                        }
+                    },
+                    xaxis: {
+                        type: "date",
+                        range: [
+                            new Date(data.tmin*1000),
+                            new Date(data.tmax*1000),
+                        ],
+                        title: {
+                            text: "Date/time"
+                        }
+                    }
+                }
+                Plotly.react(this.Element, [trace], layout);
             }
-            
-        ];
-        
-        if ( 1 )
-            this.graphs.push({
-                "title":            "Data transfer rates",
-                "bullet":           "xError",
-                "bulletSize":       1,
-                "bulletAxis":       "time_axis",
-                "errorField":       "half_width",
-                "lineThickness":    0.0,
-                "lineAlpha":        0.0,
-                "fillAlphas":       0.0,
-                "xField":           "tmid",
-                "yField":           "rate",
-                "balloonText":      "[[y]] MB/sec"
-            });
-        
-        
-        this.scale = "day";
-            
-        this.options = {
-            "type": "xy",     
-            "dataProvider": [],
-            "graphs":   this.graphs,
-            "chartCursor": {
-                enabled:    true,
-                categoryBalloonDateFormat:  "HH:NN:SS"
-            },
-            "dataDateFormat":  "MMM DD, JJ:NN:SS",
-            "valueAxes": [
-                {   "id":   "rate_axis",
-                    "title":        "Transfer rate, MB/sec",
-                    "logarithmic": true
-                },
+        }
+    
+        function EventCounts(div_id, url)
+        {
+            this.URL = url;
+            this.Element = document.getElementById(div_id);
+            this.colors = {
+                "quarantined": "#44C", 
+                "done": "#4C4",
+                "failed": "#C44"
+            };
+            this.request_data = function (scale) {
+                var w = scales[scale].window;
+                var bin = scales[scale].bin;
+                var url = this.URL + "?since_t=-"+w + "&bin="+bin;
+                var request = HTTPRequest(url, this);
+            }
+            this.data_received = function(data)
+            {
+                document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
+                var traces = [];
+                var i;
+                for( i=0; i<data.events.length; i++ )
                 {
-                    "id":   "time_axis",
-                    "type": "date",
-                    "position": "bottom",
-                    "title":    "time"
+                    var event = data.events[i];
+                    var x = [];
+                    var y = [];
+                    for( row of data.rows )
+                    {
+                        var v = row[i+1];
+                        x.push(new Date(row[0]*1000));
+                        y.push(v);
+                    }
+                    var trace = {
+                        x: x,
+                        y: y,
+                        name: event,
+                        mode: "scatter",
+                        type: "lines",
+                        line: {
+                            "shape": "hv",
+                            width: 0
+                        }, 
+                        stackgroup: "one",
+                        connectgaps: false
+                    };
+                    if( event in this.colors )
+                        trace["fillcolor"] = this.colors[event];
+                
+                    traces.push(trace);
                 }
-            ],
-            "export": {
-                "enabled":  true
+                var layout = {
+                    hovermode: 'x',
+                    xaxis: {
+                        type: "date"
+                    },
+                    yaxis: {
+                        title: {
+                            text: "Event count/bin"
+                        }
+                    }
+                }
+                Plotly.react(this.Element, traces, layout);
             }
-        } 
-
-        this.chart = AmCharts.makeChart(this.id, this.options);
-
-        this.set_scale = function(w)
-        {
-            this.scale = w;
         }
         
-        this.data_received = function(data)
+        function ScannerCounts(div_id, url)
         {
-            var i;
-            var minrate = null;
-            for( i in data )
-            {
-                var row = data[i];
-                var elapsed = row.elapsed;
-                if( elapsed == null )   elapsed = 1.0;
-                row.half_width = elapsed/2*1000;            // -> miliseconds
-                row.tmid = new Date((row.tend-elapsed/2)*1000.0);     
-                var r = row.size/row.elapsed/(1024.0*1024.0)            // -> MB/sec
-                r = Math.round(r*1000.0)/1000.0;                        // show only 3 digits of the fraction
-                row.rate = r ;
-                minrate = (minrate == null || r < minrate) ? r : minrate;
+            this.URL = url;
+            this.Element = document.getElementById(div_id);
+            this.colors = {
+                "nfiles": "2448", 
+                "nnew": "#284"
+            };
+            this.request_data = function (scale) {
+                var w = scales[scale].window;
+                var bin = scales[scale].bin;
+                var url = this.URL + "?since_t=-"+w + "&bin="+bin;
+                var request = HTTPRequest(url, this);
             }
-
-            this.data = data;
-            this.chart.dataProvider = data;
-            var ax = this.chart.getValueAxisById("time_axis");
-            var now = new Date();
-            ax.minimumDate = new Date(now.getTime() - scales[this.scale].windowSeconds*1000);
-            ax.maximumDate = now;
-            
-            ax = this.chart.getValueAxisById("rate_axis");
-            if( minrate == null )
-                ax.minrate = null;
-            else
-                ax.minimum = minrate*0.8;
-            
-            this.chart.validateData();
-        }
-        
-        this.clear = function()
-        {
-            if( this.chart )
+            this.data_received = function(data)
             {
-                this.chart.clear();
-                this.chart = null;
-            }    
+                document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
+                var times = [];
+                for( t of data.t )
+                    times.push(new Date(t*1000));
+                var traces = [
+                    {
+                        mode: 'lines',
+                        connectgaps: false,
+                        x: times,
+                        y: data.nfles,
+                        name: 'all files'
+                    },
+                    {
+                        mode: 'lines',
+                        connectgaps: false,
+                        x: times,
+                        y: data.nnew,
+                        name: 'new files'
+                    }
+                ];
+                var layout = {
+                    hovermode: 'x',
+                    xaxis: {
+                        type: "date",
+                        range: [new Date(data.tmin*1000), new Date(data.tmax*1000)] 
+                    },
+                    yaxis: {
+                        title: {
+                            text: "File count"
+                        }
+                    }
+                }
+                Plotly.react(this.Element, traces, layout);
+            }
         }
-        
-        this.update = function(scale)
-        {
-            this.set_scale(scale);
-            var window = scales[scale].window;
-            var url = this.URLHead + "?since_t=-"+window ;
-            this.request = XMLRequest(url, this, false);
-        }
-        
-        this.addListener = function(what, handler){
-            this.chart.addListener(what, handler);
-        }
-    }
     
-    var the_rate_chart = new rate_chart("rate_chart", "./transfer_rates");
+        var events_counts_chart = null;
+        var rate_chart = null;
+        var rate_histogram = null;
+        var scanner_chart = null;
 
-    function rate_histogram(id, url_head)
-    {
-        this.URLHead = url_head;
-        this.id = id;
+    
+        function refresh_charts()
+        {
+            var w = document.getElementById("chart_window").value;
+            if( events_counts_chart != null )
+                events_counts_chart.request_data(w);
+            if( rate_chart != null )
+                rate_chart.request_data(w);
+            if( rate_histogram != null )
+                rate_histogram.request_data(w);
+            if( scanner_chart != null )
+                scanner_chart.request_data(w);
+        }
+    
+        function initCharts()
+        {
+            events_counts_chart = new EventCounts("event_chart", "./event_counts");
+            rate_chart = new Rates("rate_chart", "./transfer_rates");
+            rate_histogram = new RateHistogram("rate_histogram", "./rate_histogram");
+            scanner_chart = new ScannerCounts("scanner_chart", "./scanner_counts");
+            refresh_charts();
+        }
 
-        this.graphs = [
-            {
-                "id":               "rate-hist",
-                "type":             "step",
-                "fillAlphas":       0.1,
-                "lineAlpha":        1.0,
-                "valueField":       "count",
-                "showBalloon":      true,
-                "balloonText":      "[[category]] MB/sec: [[value]]"
-            }
-        ];
-        
-        scale = "day";
-        this.window = scales[scale].window;
-        
-        this.options = {
-            "type": "serial",    
-            "dataProvider": [],
-            "graphs":   this.graphs,
-            "categoryField":    "rate",
-            "chartCursor":  {},
-            "valueAxes": [
-                {   "id":   "count-axis",
-                    "title":        "Count",
-                    "logarithmic": false
+        initCharts();
+
+        setInterval( function() {
+                if( document.getElementById("auto_refresh").checked )   
+                {
+                    refresh_charts();
                 }
-            ],
-            "categoryAxis": {
-                "title":    "Transfer rate, MB/s",
-                "startOnAxis":   true,
-                "showFirstLabel":    true,
-                "showLastLabel":    true,
-                "gridPosition":     "middle",
-                "min": 0.0
             },
-            "export": {
-                "enabled":  true
-            }
-        } 
-
-        this.chart = AmCharts.makeChart(this.id, this.options);
-
-        this.set_scale = function(w)
-        {
-            this.scale = w;
-        }
-        
-        this.data_received = function(data)
-        {
-            this.data = data;
-            this.chart.dataProvider = data.data;
-            this.chart.validateData();
-        }
-        
-        this.clear = function()
-        {
-            if( this.chart )
-            {
-                this.chart.clear();
-                this.chart = null;
-            }    
-        }
-        
-        this.update = function(scale)
-        {
-            this.set_scale(scale);
-            var window = scales[scale].window;
-            var url = this.URLHead + "?since_t=-"+window ;
-            this.request = XMLRequest(url, this, false);
-        }
-        
-        this.addListener = function(what, handler){
-            this.chart.addListener(what, handler);
-        }
-    }
-    
-    var the_rate_histogram = new rate_histogram("rate_histogram", "./rate_histogram");
-
-    
-    function updateCharts()
-    {
-        var w = document.getElementById("chart_window").value;
-        the_event_chart.update(w);
-        the_rate_chart.update(w);
-        the_rate_histogram.update(w);
-    }
-    
-    setInterval( function() {
-            if( document.getElementById("auto_refresh").checked )   
-            {
-                updateCharts();
-            }
-        },
-        10000)
-    
-    updateCharts();
+            60000)
     
 
     

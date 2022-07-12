@@ -98,15 +98,14 @@ class Handler(WPHandler):
             for i in range(0, len(text), chunk):
                 yield text[i:i+chunk]
         return Response(app_iter = text_iter(json.dumps(points)), content_type = "text/json")
-        
-    def event_counts(self, req, rel_path, event_types=None, since_t=None, bin=None, **args):
     
+    def event_counts(self, req, rel_path, event_types=None, since_t=None, bin=None, **args):
         bin = self.decode_time(bin)   
         bin = max(int(bin), 1.0)
         #print "bin=",bin,"  since_t=",since_t
         events = sorted(event_types.split(","))
         tmin = int(self.decode_time(since_t)/bin)*bin
-        tmax = int((time.time()+bin-1)/bin)*bin
+        tmax = math.ceil(time.time()/bin)*bin
         event_counts = self.App.Manager.getHistoryEventCounts(events, bin, tmin)
         
         counts = {}
@@ -130,6 +129,33 @@ class Handler(WPHandler):
             yield "     ]\n}"
         return Response(app_iter = table_to_json(counts, events, tmin, tmax, bin),
             content_type = "text/json")
+    
+    def scanner_counts(self, req, rel_path, since_t=None, bin=None, **args):
+        since_t = self.decode_time(since_t)
+        bin = self.decode_time(bin)   
+        bin = max(int(bin), 1.0)
+        #print "bin=",bin,"  since_t=",since_t
+        tmin = int(since_t/bin)*bin
+        tmax = math.ceil(time.time()/bin)*bin
+
+        nnew_timeline = [None]*((tmax-tmin)/bin)
+        nfiles_timeline = [None]*((tmax-tmin)/bin)
+        
+        for record in self.HistoryDB.scannerHistorySince(since_t):
+            i = int((record.T-tmin)/bin)
+            if not record.Error:
+                nnew_timeline[i] = (nnew_timeline[i] or 0) + record.NNew
+                nfiles_timeline[i] = (nfiles_timeline[i] or 0) + record.NFiles
+
+        return json.dumps(
+            {
+                "tmin":     tmin,
+                "tmax":     tmax,
+                "bin":      bin,
+                "nfiles":   nfiles_timeline,
+                "nnew":     new_timeline
+            }
+        ), "text/json"
         
     def charts(self, req, rel_path, **args):
         return self.render_to_response("charts.html")
@@ -250,11 +276,12 @@ def pretty_size(x):
             
 class App(WPApp):
 
-    def __init__(self, url_prefix, manager, scanmgr):
+    def __init__(self, url_prefix, manager, scanmgr, history_db):
         WPApp.__init__(self, Handler, prefix=url_prefix)
         self.Manager = manager
         self.ScanMgr = scanmgr
         self.URLPrefix = url_prefix
+        self.HistoryDB = history_db
 
     def init(self):
         self.initJinjaEnvironment(
