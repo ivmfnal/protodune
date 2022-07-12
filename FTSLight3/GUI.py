@@ -150,7 +150,7 @@ class Handler(WPHandler):
                 nfiles_timeline[i] += record.NFiles
                 nn[i] += 1
         
-        for in in range(nbins):
+        for i in range(nbins):
             if nn[i]:
                 nnew_timeline[i] = nnew_timeline[i]/nn[i]
                 nfiles_timeline[i] = nfiles_timeline[i]/nn[i]
