@@ -286,6 +286,7 @@ class Configuration(object):
         self.GUIPrefix = config.get("Monitor", "GUIPrefix", "/fts-light")
         if not self.GUIPrefix or self.GUIPrefix[0] != "/":
             self.self.GUIPrefix = "/" + self.GUIPrefix
+        self.SiteTitle = config.get("Monitor", "SiteTitle", "Ingestion Daemon")
         
         self.SendToGraphite = config.get("Graphite", "SendStats", "no") == "yes"
         if self.SendToGraphite:

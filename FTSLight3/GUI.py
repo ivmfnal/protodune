@@ -303,11 +303,12 @@ def pretty_size(x):
             
 class App(WPApp):
 
-    def __init__(self, url_prefix, manager, scanmgr, history_db):
+    def __init__(self, config, manager, scanmgr, history_db):
         WPApp.__init__(self, Handler, prefix=url_prefix)
         self.Manager = manager
         self.ScanMgr = scanmgr
-        self.URLPrefix = url_prefix
+        self.URLPrefix = config.GUIPrefix
+        self.SiteTitle = config.SiteTitle
         self.HistoryDB = history_db
 
     def init(self):
@@ -323,6 +324,7 @@ class App(WPApp):
                 "none2null": none2null
             }, 
             globals = {
+                "GLOBAL_SiteTitle":self.SiteTitle,
                 "GLOBAL_Version":Version,
                 "GLOBAL_URLPrefix":self.URLPrefix
             }
@@ -331,7 +333,7 @@ class App(WPApp):
 def GUIThread(config, manager, scanmgr, history_db):
     port = config.HTTPPort
     prefix = config.GUIPrefix
-    app = App(prefix, manager, scanmgr, history_db)
+    app = App(config, manager, scanmgr, history_db)
     return HTTPServer(port, app)
                 
             
