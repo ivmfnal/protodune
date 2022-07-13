@@ -160,8 +160,6 @@ class Handler(WPHandler):
         nbins = (tmax-tmin)//bin
         zeros = [0]*nbins
         
-        counts = {"*":zeros[:]}
-        points = {"*":zeros[:]}
         servers = set()
         locations = set()
         
@@ -169,8 +167,6 @@ class Handler(WPHandler):
         for record in self.App.HistoryDB.scannerHistorySince(since_t):
             i = int((record.T-tmin)/bin)
             if not record.Error:
-                counts["*"][i] += record.NFiles
-                points["*"][i] += 1
                 server = record.Server
                 location = record.Location
                 locations.add(location)
