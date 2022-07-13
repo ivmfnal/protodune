@@ -203,7 +203,9 @@ class Scanner(PyThread, Logged):
                 else:
                     if error:
                         self.error(error)
-                    self.debug("Files found:", len(descs))
-                    nnew = self.Manager.addFiles(descs)
-                    self.HistoryDB.add_scanner_record(self.Server, self.Location, time.time(), len(descs), nnew)
+                    else:
+                        self.debug("Files found:", len(descs))
+                        nnew = self.Manager.addFiles(descs)
+                        self.log("found", len(descs), "files,   ", nnew, "new")
+                        self.HistoryDB.add_scanner_record(self.Server, self.Location, time.time(), len(descs), nnew)
             self.sleep(self.ScanInterval)
