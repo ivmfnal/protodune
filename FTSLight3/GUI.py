@@ -158,29 +158,48 @@ class Handler(WPHandler):
         tmax = math.ceil(time.time()/bin)*bin
 
         nbins = (tmax-tmin)//bin
-        nnew_timeline = [0]*nbins
-        nfiles_timeline = [0]*nbins
-        nn = [0]*nbins
+        zeros = [0]*nbins
+        
+        counts = {"*":zeros[:]}
+        points = {"*":zeros[:]}
+        servers = set()
+        locations = set()
         
         for record in self.App.HistoryDB.scannerHistorySince(since_t):
             i = int((record.T-tmin)/bin)
             if not record.Error:
-                nnew_timeline[i] += record.NNew
-                nfiles_timeline[i] += record.NFiles
-                nn[i] += 1
-        
-        for i in range(nbins):
-            if nn[i]:
-                nnew_timeline[i] = nnew_timeline[i]/nn[i]
-                nfiles_timeline[i] = nfiles_timeline[i]/nn[i]
+                totals_timeline[i] += record.NFiles
+                nn_total[i] += 1
+                server = record.Server
+                location = record.Location
+                locations.add(location)
+                servers.add(server)
+                key = server + ':' + location
+                if key not in counts:
+                    counts[key] = zeros[:]
+                    points[key] = zeros[:]
+                counts[key][i] += record.NFiles
+                points[key][i] += 1
+
+        averages = {}
+        for key in counts.keys():
+            c = counts[key]
+            n = points[key]
+            a = [None]*nbins
+            for i in range(nbins):
+                if n[i] > 0:
+                    a[i] = c[i]/n[i]
+            averages[key] = a
         
         return json.dumps(
             {
                 "tmin":     tmin,
                 "tmax":     tmax,
                 "bin":      bin,
-                "nfiles":   nfiles_timeline,
-                "nnew":     nnew_timeline
+                "keys":     sorted(list(averages.keys())),
+                "locations":    locations,
+                "servers":      servers,
+                "averages":   averages
             }
         ), "text/json"
         
