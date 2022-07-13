@@ -528,14 +528,33 @@ class Manager(PyThread, Logged):
         
     @synchronized                         
     def addFile(self, desc):
-        mover_task = FileMoverTask(self, self.Config, self.FTS3, self.MemoryLogger, desc)
-        #, self.TempDir,
-        #        self.SourcePurge, self.ChecksumRequired, self.TransferTimeout)
-        self.MoverQueue.addTask(mover_task)
-        self.log_record("file queued: %s" % (desc,))
-        self.debug("Added to queue: %s" % (desc,))
-        self.HistoryDB.fileQueued(desc.Name)
-                
+        if self.newFile(desc.Name):
+            mover_task = FileMoverTask(self, self.Config, self.FTS3, self.MemoryLogger, desc)
+            #, self.TempDir,
+            #        self.SourcePurge, self.ChecksumRequired, self.TransferTimeout)
+            self.MoverQueue.addTask(mover_task)
+            self.log_record("file queued: %s" % (desc,))
+            self.debug("Added to queue: %s" % (desc,))
+            self.HistoryDB.fileQueued(desc.Name)
+            return True
+        else:
+            self.debug(f"File {desc.Name} is not new")
+            return False
+
+    @synchronized                         
+    def addFiles(self, descs):
+        nnew = 0
+        for desc in descs:
+            if self.newFile(desc.Name):
+                mover_task = FileMoverTask(self, self.Config, self.FTS3, self.MemoryLogger, desc)
+                #, self.TempDir,
+                #        self.SourcePurge, self.ChecksumRequired, self.TransferTimeout)
+                self.MoverQueue.addTask(mover_task)
+                self.log_record("file queued: %s" % (desc,))
+                self.HistoryDB.fileQueued(desc.Name)
+                nnew += 1
+        return nnew
+
     @synchronized
     def newFile(self, filename):
         queued, running = self.MoverQueue.tasks()
