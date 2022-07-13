@@ -209,7 +209,7 @@ class Handler(WPHandler):
             legend = k
             if prefix and location.startswith(prefix):
                 if location == prefix:
-                    loc = location.rsplit('/',1)[-1]
+                    loc = '/'+location.rsplit('/',1)[-1]
                 else:
                     loc = location[len(prefix):]
                 legend = "%s:...%s" % (server, loc)
