@@ -304,10 +304,10 @@ def pretty_size(x):
 class App(WPApp):
 
     def __init__(self, config, manager, scanmgr, history_db):
-        WPApp.__init__(self, Handler, prefix=url_prefix)
+        self.URLPrefix = config.GUIPrefix
+        WPApp.__init__(self, Handler, prefix=self.URLPrefix)
         self.Manager = manager
         self.ScanMgr = scanmgr
-        self.URLPrefix = config.GUIPrefix
         self.SiteTitle = config.SiteTitle
         self.HistoryDB = history_db
 
