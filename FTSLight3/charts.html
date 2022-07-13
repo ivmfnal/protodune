@@ -206,7 +206,7 @@
             this.request_data = function (scale) {
                 var w = scales[scale].window;
                 var bin = scales[scale].bin;
-                var url = this.URL + "?since_t=-"+w + "&bin="+bin + "&event_types=done,discovered,failed";
+                var url = this.URL + "?since_t=-"+w + "&bin="+bin + "&event_types=done,failed,discovered";
                 var request = HTTPRequest(url, this);
             }
             this.data_received = function(data)
