@@ -150,7 +150,7 @@ class Scanner(PyThread, Logged):
         files = []
         dirs = []
         error = ""
-        status, out = runCommand(lscommand, timeout, self.debug)
+        status, out = runCommand(lscommand, timeout)
         if status:
             error = out
             self.log("Error in ls (%s): %s" % (lscommand, error,))
