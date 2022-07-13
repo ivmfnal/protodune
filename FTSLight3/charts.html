@@ -42,7 +42,7 @@
                 "axisLabelInterval":    "minute",
                 "window":  "24h",
                 "windowSeconds":   24*3600,
-                "bin":    "1m",
+                "bin":    "10m",
                 "minPeriod":        "mm",
                 "balloonFormat":    "HH:NN"
             },
@@ -51,7 +51,7 @@
                 "axisLabelInterval":    "10 minutes",
                 "window":  "7d",
                 "windowSeconds":   24*3600*7,
-                "bin":    "10m",
+                "bin":    "1h",
                 "minPeriod":        "mm",
                 "balloonFormat":    "HH:NN"
             },
@@ -60,7 +60,7 @@
                 "axisLabelInterval":    "10 seconds",
                 "window":  "1h",
                 "windowSeconds":   3600,
-                "bin":    "10s",
+                "bin":    "1m",
                 "minPeriod":        "ss",
                 "balloonFormat":    "HH:NN:SS"
             }
@@ -206,7 +206,7 @@
             this.request_data = function (scale) {
                 var w = scales[scale].window;
                 var bin = scales[scale].bin;
-                var url = this.URL + "?since_t=-"+w + "&bin="+bin + "&event_types=discovered,failed,done";
+                var url = this.URL + "?since_t=-"+w + "&bin="+bin + "&event_types=done,failed";
                 var request = HTTPRequest(url, this);
             }
             this.data_received = function(data)
