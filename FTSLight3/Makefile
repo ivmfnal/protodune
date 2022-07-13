@@ -8,9 +8,8 @@ TAR_FILE = $(TAR_DIR)/$(PRODUCT)_$(VERSION).tar
 
 FILES = \
 	Version.py  Mover.py Scanner.py tools.py historydb.py \
-	GraphiteInterface.py mover.cfg \
-	logs.py uid.py \
-	fts3client \
+	GraphiteInterface.py mover.cfg uid.py \
+	fts3client logs \
 	WebService.py GUI.py static \
 	charts.html index.html template.html config.html history.html input_dir.html log.html	 
 
