@@ -253,7 +253,7 @@
                         }
                     },
                     legend: {
-                        bgcolor: "rgba(0.9, 0.9, 0.9, 0.5)",
+                        bgcolor: "rgba(0.9, 0.9, 0.9, 0.2)",
                         x:1.0,
                         y:1.0,
                         xanchor: "right"
@@ -301,6 +301,12 @@
                         );
                 var layout = {
                     //hovermode: 'x',
+                    legend: {
+                        bgcolor: "rgba(0.9, 0.9, 0.9, 0.2)",
+                        x:1.0,
+                        y:1.0,
+                        xanchor: "right"
+                    },
                     xaxis: {
                         type: "date",
                         range: [new Date(data.tmin*1000), new Date(data.tmax*1000)] 
