@@ -117,15 +117,17 @@ class Scanner(PyThread, Logged):
             self.log("Scanner subprocess status code:", status, "   error:", error)
             return [], error
         
+
         meta_names = {desc.Name[:-5] for desc in file_descs
             if desc.Name.endswith(".json")
         }
+
+        self.log("found files (data and metadata):", len(file_descs), "    metadata:", len(meta_names))
 
         out = [desc for desc in file_descs
             if desc.Name in meta_names
                 and any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns)
         ]
-        self.log("found files:", len(file_descs), "  matching files:", len(out))
         return out, None
 
     def listFilesUnder(self, location):
@@ -207,6 +209,6 @@ class Scanner(PyThread, Logged):
                     else:
                         self.debug("Files found:", len(descs))
                         nnew = self.Manager.addFiles(descs)
-                        self.log("found", len(descs), "files,   ", nnew, "new")
+                        self.log("found matching files with metadata:", len(descs), "files,   ", nnew, "new")
                         self.HistoryDB.add_scanner_record(self.Server, self.Location, time.time(), len(descs), nnew)
             self.sleep(self.ScanInterval)
