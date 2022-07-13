@@ -197,8 +197,8 @@ class Handler(WPHandler):
                 "tmax":     tmax,
                 "bin":      bin,
                 "keys":     sorted(list(averages.keys())),
-                "locations":    locations,
-                "servers":      servers,
+                "locations":    sorted(list(locations)),
+                "servers":      sorted(list(servers)),
                 "averages":   averages
             }
         ), "text/json"
