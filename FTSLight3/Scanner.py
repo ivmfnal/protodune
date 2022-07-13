@@ -113,8 +113,8 @@ class Scanner(PyThread, Logged):
     @synchronized
     def scan(self):
         status, error, file_descs = self.listFilesUnder(self.Location)
-        self.log("scan status:", status, "  error:", error or "-", "  files:", len(file_descs))
         if status:
+            self.log("Scanner subprocess status code:", status, "   error:", error)
             return [], error
         
         meta_names = {desc.Name[:-5] for desc in file_descs
@@ -125,6 +125,7 @@ class Scanner(PyThread, Logged):
             if desc.Name in meta_names
                 and any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns)
         ]
+        self.log("found files:", len(file_descs), "  matching files:", len(out))
         return out, None
 
     def listFilesUnder(self, location):
