@@ -165,6 +165,7 @@ class Handler(WPHandler):
         servers = set()
         locations = set()
         
+        common_prefixes = {}            # {server -> common prefix so far}
         for record in self.App.HistoryDB.scannerHistorySince(since_t):
             i = int((record.T-tmin)/bin)
             if not record.Error:
@@ -174,14 +175,28 @@ class Handler(WPHandler):
                 location = record.Location
                 locations.add(location)
                 servers.add(server)
-                key = server + ':' + location
+                key = (server, location)
                 if key not in counts:
                     counts[key] = zeros[:]
                     points[key] = zeros[:]
                 counts[key][i] += record.NFiles
                 points[key][i] += 1
+                
+                parts = location.split('/')
+                common_prefix = common_prefixes.setdefault(server, parts)
+                new_common = []
+                for c, p in zip(common_prefix, parts):
+                    if c == p:
+                        new_common.append(c)
+                common_prefixes[server] = new_common
+                
+        common_prefixes = {
+            server: "" if not common_prefix else '/'.join(common_prefix)
+            for server, common_prefix in common_prefixes.items()
+        }
 
         averages = {}
+        legends = {}
         for key in counts.keys():
             c = counts[key]
             n = points[key]
@@ -189,13 +204,22 @@ class Handler(WPHandler):
             for i in range(nbins):
                 if n[i] > 0:
                     a[i] = c[i]/n[i]
-            averages[key] = a
+            server, location = key
+            k = "%s:%s" % (server, location)
+            averages[k] = a
+            prefix = common_prefixes.get(server, "")
+            legend = k
+            if prefix and location.startswith(prefix):
+                legend = "%s:...%s" % (server, location[len(prefix):])
+            legends[k] = legend
+            
         
         return json.dumps(
             {
                 "tmin":     tmin,
                 "tmax":     tmax,
                 "bin":      bin,
+                "legends":  legends,
                 "keys":     sorted(list(averages.keys())),
                 "locations":    sorted(list(locations)),
                 "servers":      sorted(list(servers)),
