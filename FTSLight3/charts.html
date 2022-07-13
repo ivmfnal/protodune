@@ -202,6 +202,7 @@
                 "done": "#4C4",
                 "failed": "#C44"
             };
+            this.bin = null;
             this.request_data = function (scale) {
                 var w = scales[scale].window;
                 var bin = scales[scale].bin;
@@ -249,7 +250,7 @@
                     },
                     yaxis: {
                         title: {
-                            text: "Event count/bin"
+                            text: "Event count/" + data.bin
                         }
                     },
                     legend: {

@@ -120,6 +120,7 @@ class Handler(WPHandler):
         return text_iter(out), "text/json"
 
     def event_counts(self, req, rel_path, event_types=None, since_t=None, bin=None, **args):
+        bin_text = bin
         bin = self.decode_time(bin)   
         bin = max(int(bin), 1)
         #print "bin=",bin,"  since_t=",since_t
@@ -140,6 +141,7 @@ class Handler(WPHandler):
             "events":   events,
             "tmin":     tmin,
             "tmax":     tmax,
+            "bin":      bin_text,
             "rows": [
                 [t] + [counts[e].get(t, 0) for e in events]
                 for t in range(tmin, tmax+bin, bin)
