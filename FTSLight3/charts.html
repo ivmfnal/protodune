@@ -29,12 +29,12 @@
 </p>
 
 <h3>Events</h3>
-<div id="event_chart" style="width:1000px; height:400px"></div>
+<div id="event_chart" style="width:1500px; height:400px"></div>
 <h3>Files</h3>
-<div id="scanner_chart" style="width:1000px; height:400px"></div>
+<div id="scanner_chart" style="width:1500px; height:400px"></div>
 <h3>Transfer rates</h3>
-<div id="rate_chart" style="width:1000px; height:400px"></div>
-<div id="rate_histogram" style="width:1000px; height:400px"></div>
+<div id="rate_chart" style="width:1500px; height:400px"></div>
+<div id="rate_histogram" style="width:1500px; height:400px"></div>
 
 <script>
       var scales = {
@@ -101,6 +101,7 @@
                     type: 'scatter' 
                 };
                 var layout = {
+                    margin: {   r: 500 },
                     xaxis: {
                         title: {
                             text: "Rate, MB/s"
@@ -171,6 +172,7 @@
                     }
                 };
                 var layout = {
+                    margin: {   r: 500 },
                     yaxis: {
                         type: "log",
                         range: [vmin, vmax],
@@ -243,6 +245,7 @@
                     traces.push(trace);
                 }
                 var layout = {
+                    margin: {   r: 500 },
                     hovermode: 'x',
                     xaxis: {
                         type: "date"
@@ -259,7 +262,7 @@
                         bgcolor: "rgba(0.9, 0.9, 0.9, 0.2)",
                         x:1.0,
                         y:1.0,
-                        xanchor: "right"
+                        xanchor: "left"
                     }
                 }
                 Plotly.react(this.Element, traces, layout);
@@ -306,6 +309,7 @@
                     }
                 var layout = {
                     //hovermode: 'x',
+                    margin: {   r: 500 },
                     hoverlabel: {
                         namelength: maxname+10
                     },
@@ -313,7 +317,7 @@
                         bgcolor: "rgba(0.9, 0.9, 0.9, 0.2)",
                         x:1.0,
                         y:1.0,
-                        xanchor: "right",
+                        xanchor: "left",
                         font: {
                             size: 10
                         }
