@@ -207,8 +207,7 @@ class Scanner(PyThread, Logged):
                     if error:
                         self.error(error)
                     else:
-                        self.debug("Files found:", len(descs))
                         nnew = self.Manager.addFiles(descs)
-                        self.log("found matching files with metadata:", len(descs), "files,   ", nnew, "new")
+                        self.log("found matching data+metadata pairs:", len(descs), "files,   new:", nnew)
                         self.HistoryDB.add_scanner_record(self.Server, self.Location, time.time(), len(descs), nnew)
             self.sleep(self.ScanInterval)
