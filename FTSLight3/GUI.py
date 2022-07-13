@@ -152,7 +152,7 @@ class Handler(WPHandler):
     def scanner_counts(self, req, rel_path, since_t=None, bin=None, **args):
         since_t = self.decode_time(since_t)
         bin = self.decode_time(bin)   
-        bin = max(int(bin), 1.0)
+        bin = max(int(bin), 1)
         #print "bin=",bin,"  since_t=",since_t
         tmin = int(since_t/bin)*bin
         tmax = math.ceil(time.time()/bin)*bin
