@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block html_head %}
-<script src="{{GLOBAL_URL_Prefix}}/static/requests.js"></script>
+<script src="{{GLOBAL_AppTopPath}}/static/requests.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.12.1.min.js"></script>
 
 {% endblock %}
@@ -73,21 +73,16 @@
         }
         this.data_received = function(data)
         {
+            document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
             var x = [];
             var y = [];
-            var ymax = 0;
+            var ymax = 1;
             for( row of data.data )
             {
                 x.push(row.rate/1000000);
                 y.push(row.count);
                 if( ymax < row.count )
                     ymax = row.count;
-            }
-            var vmax = 10;
-            while( ymax > vmax )
-            {
-                if( ymax > vmax )  vmax *= 2;
-                if( ymax > vmax )  vmax *= 5;
             }
             var trace = {
                 x: x,
@@ -110,7 +105,8 @@
                     title: {
                         text: "Count"
                     },
-                    range: [0, vmax]
+                    type: "log",
+                    range: [-0.5, Math.ceil(Math.log10(ymax))+0.5]
                 }
             }
             Plotly.react(this.Element, [trace], layout);
@@ -127,28 +123,34 @@
             var url = this.URL + "?since_t=-"+w;
             var request = XMLRequest(url, this);
         }
+        
         this.data_received = function(data)
         {
+            document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
             var x = [];
             var y = [];
             var marker_width = [];
-            var rmax = 10;
+            var rmax = null;
+            var rmin = null;
             for( row of data.data )
             {
                 x.push(new Date((row.tend - row.elapsed/2)*1000));
                 var r = row.size/row.elapsed;
                 y.push(r);
                 var marker_size = row.elapsed/(data.tmax-data.tmin)*1000;
+                marker_size = 2;
                 if( marker_size < 5 )   marker_size = 5;
                 marker_width.push(marker_size);
-                if( r > rmax )  rmax = r;
+                if( rmax == null || r > rmax )  rmax = r;
+                if( rmin == null || r < rmin )  rmin = r;
             }
-            var vmax = 10;
-            while( rmax > vmax )
-            {
-                if( rmax > vmax )  vmax *= 2;
-                if( rmax > vmax )  vmax *= 5;
-            }
+            
+            if( rmin == null )  rmin = 1.0;
+            if( rmax == null )  rmax = 10.0;
+
+            var vmax = Math.ceil(Math.log10(rmax))+0.5;
+            var vmin = Math.floor(Math.log10(rmin))-0.5;
+            
             var trace = {
                 x: x,
                 y: y,
@@ -158,14 +160,15 @@
                     symbol: "line-ew-open",
                     size: marker_width,
                     line: {
-                        width: 1
-                    }
+                        width: 1.5
+                    },
+                    opacity: 0.8
                 }
             };
             var layout = {
                 yaxis: {
                     type: "log",
-                    range: [0, Math.log(vmax)],
+                    range: [vmin, vmax],
                     title: {
                         text: "Transfer rate, B/s"
                     }
@@ -202,6 +205,7 @@
         }
         this.data_received = function(data)
         {
+            document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
             var traces = [];
             var i;
             for( i=0; i<data.events.length; i++ )
@@ -211,8 +215,9 @@
                 var y = [];
                 for( row of data.rows )
                 {
+                    var v = row[i+1];
                     x.push(new Date(row[0]*1000));
-                    y.push(row[i+1]);
+                    y.push(v);
                 }
                 var trace = {
                     x: x,
@@ -224,7 +229,8 @@
                         "shape": "hv",
                         width: 0
                     }, 
-                    stackgroup: "one"
+                    stackgroup: "one",
+                    connectgaps: false
                 };
                 if( event in this.colors )
                     trace["fillcolor"] = this.colors[event];
@@ -232,6 +238,7 @@
                 traces.push(trace);
             }
             var layout = {
+                hovermode: 'x',
                 xaxis: {
                     type: "date"
                 },
