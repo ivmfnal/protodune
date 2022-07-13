@@ -162,6 +162,8 @@ class Handler(WPHandler):
         
         servers = set()
         locations = set()
+        counts = {}
+        points = {}
         
         common_prefixes = {}            # {server -> common prefix so far}
         for record in self.App.HistoryDB.scannerHistorySince(since_t):
