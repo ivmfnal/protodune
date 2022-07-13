@@ -168,8 +168,8 @@ class Handler(WPHandler):
         for record in self.App.HistoryDB.scannerHistorySince(since_t):
             i = int((record.T-tmin)/bin)
             if not record.Error:
-                totals_timeline[i] += record.NFiles
-                nn_total[i] += 1
+                counts["*"][i] += record.NFiles
+                points["*"][i] += 1
                 server = record.Server
                 location = record.Location
                 locations.add(location)
