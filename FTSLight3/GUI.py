@@ -187,7 +187,7 @@ class Handler(WPHandler):
                     if c == p:
                         new_common.append(c)
                 common_prefixes[server] = new_common
-                
+
         common_prefixes = {
             server: "" if not common_prefix else '/'.join(common_prefix)
             for server, common_prefix in common_prefixes.items()
@@ -208,7 +208,11 @@ class Handler(WPHandler):
             prefix = common_prefixes.get(server, "")
             legend = k
             if prefix and location.startswith(prefix):
-                legend = "%s:...%s" % (server, location[len(prefix):])
+                if location == prefix:
+                    loc = location.rsplit('/',1)[-1]
+                else:
+                    loc = location[len(prefix):]
+                legend = "%s:...%s" % (server, loc)
             legends[k] = legend
             
         
