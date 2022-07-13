@@ -284,8 +284,10 @@
                 for( t=data.tmin; t<data.tmax; t += data.bin )
                 	times.push(new Date(t*1000));
                 var traces = [];
+                var maxname = 10;
                 for( var key of data.keys )
                     if( key != '*' )
+                    {
                         traces.push(
                             {
                                 mode: 'lines',
@@ -299,8 +301,13 @@
                                 }
                             }
                         );
+                        if( data.legends[key].length > maxname )
+                            maxname = data.legends[key].length;
                 var layout = {
                     //hovermode: 'x',
+                    hoverlabel: {
+                        namelength: maxname
+                    },
                     legend: {
                         bgcolor: "rgba(0.9, 0.9, 0.9, 0.2)",
                         x:1.0,
