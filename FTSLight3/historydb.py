@@ -7,7 +7,7 @@ class _ScannerRecord(object):
         self.Location = location
         self.T = t
         self.NFiles = nfiles
-        self.NNew = nfiles
+        self.NNew = nnew
         self.Error = error
 
 class _HistoryDB(Primitive):

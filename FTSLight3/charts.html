@@ -1,7 +1,7 @@
 {% extends "template.html" %}
 
 {% block head %}
-<script src="{{GLOBAL_AppTopPath}}/static/requests.js"></script>
+<script src="{{GLOBAL_URLPrefix}}/static/requests.js"></script>
 <script src="https://cdn.plot.ly/plotly-2.12.1.min.js"></script>
 
 {% endblock %}
@@ -28,10 +28,10 @@
 </table>
 </p>
 
-<div id="event_chart" style="width:100%; height:400px"></div>
-<div id="scanner_chart" style="width:100%; height:400px"></div>
-<div id="rate_chart" style="width:100%; height:400px"></div>
-<div id="rate_histogram" style="width:100%; height:400px"></div>
+<div id="event_chart" style="width:1000px; height:400px"></div>
+<div id="scanner_chart" style="width:1000px; height:400px"></div>
+<div id="rate_chart" style="width:1000px; height:400px"></div>
+<div id="rate_histogram" style="width:1000px; height:400px"></div>
 
 <script>
       var scales = {
@@ -150,8 +150,8 @@
                 if( rmin == null )  rmin = 1.0;
                 if( rmax == null )  rmax = 10.0;
 
-                var vmax = Math.ceil(Math.log10(rmax))+0.5;
-                var vmin = Math.floor(Math.log10(rmin))-0.5;
+                var vmax = Math.ceil(Math.log10(rmax))+0.2;
+                var vmin = Math.floor(Math.log10(rmin))-0.2;
             
                 var trace = {
                     x: x,
@@ -202,7 +202,7 @@
             this.request_data = function (scale) {
                 var w = scales[scale].window;
                 var bin = scales[scale].bin;
-                var url = this.URL + "?since_t=-"+w + "&bin="+bin;
+                var url = this.URL + "?since_t=-"+w + "&bin="+bin + "&event_types=discovered,done,failed";
                 var request = HTTPRequest(url, this);
             }
             this.data_received = function(data)
@@ -272,14 +272,15 @@
             {
                 document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
                 var times = [];
-                for( t of data.t )
-                    times.push(new Date(t*1000));
+                var t;
+		for( t=data.tmin; t<data.tmax; t += data.bin )
+			times.push(new Date(t*1000));
                 var traces = [
                     {
                         mode: 'lines',
                         connectgaps: false,
                         x: times,
-                        y: data.nfles,
+                        y: data.nfiles,
                         name: 'all files'
                     },
                     {
