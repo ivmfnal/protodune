@@ -30,8 +30,8 @@
 
 <h3>Events</h3>
 <div id="event_chart" style="width:1500px; height:400px"></div>
-<h3>Files</h3>
-<table class="form">
+<h3>Input files</h3>
+<table class="formatting">
     <tr>
         <td>Servers:<select id="server_select"></select></td>
         <td>Locations:<select id="location_select"></select></td>
@@ -305,7 +305,7 @@
                     }
                 return out;
             }
-            this.populate_selector(sel_id, values)
+            this.populate_selector = function(sel_id, values)
             {
                 var o = document.getElementById(sel_id);
                 var current_value = o.value;
