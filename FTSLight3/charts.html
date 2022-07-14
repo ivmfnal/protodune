@@ -34,13 +34,17 @@
 <table class="formatting">
     <tr>
         <th>Server:</th>
-        <td><select id="server_select" onchange="updateScannerChart()">
-            <option value="(all)">(all)</option>
-        </select>
+        <td>
+            <select id="server_select" onchange="updateScannerChart()">
+                <option value="(all)">(all)</option>
+            </select>
         </td>
-        <td>Location:<select id="location_select" onchange="updateScannerChart()">
-            <option value="(all)">(all)</option>
-        </select></td>
+        <th>Location:</th>
+        <td>
+            <select id="location_select" onchange="updateScannerChart()">
+                <option value="(all)">(all)</option>
+            </select>
+        </td>
     </tr>
 </table>
 <div id="scanner_chart" style="width:1500px; height:400px"></div>
