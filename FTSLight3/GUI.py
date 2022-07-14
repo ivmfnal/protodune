@@ -167,7 +167,7 @@ class Handler(WPHandler):
         counts = {}
         points = {}
         
-        common_prefixes = {}            # {server -> common prefix so far}
+        common_prefix = None
         for record in self.App.HistoryDB.scannerHistorySince(since_t):
             i = int((record.T-tmin)/bin)
             if not record.Error:
@@ -183,51 +183,48 @@ class Handler(WPHandler):
                 points[key][i] += 1
                 
                 parts = location.split('/')
-                common_prefix = common_prefixes.setdefault(server, parts)
+                if common_prefix is None:
+                    common_prefix = parts
                 new_common = []
                 for c, p in zip(common_prefix, parts):
                     if c == p:
                         new_common.append(c)
-                common_prefixes[server] = new_common
+                common_prefix = new_common
 
-        common_prefixes = {
-            server: "" if not common_prefix else '/'.join(common_prefix)
-            for server, common_prefix in common_prefixes.items()
-        }
-
-        averages = {}
+        common_prefix = "/".join(common_prefix) if common_prefix else ""
         legends = {}
+        for location in locations:
+            legend = location
+            if location == prefix:
+                legend = '.../'+location.rsplit('/',1)[-1]
+            elif prefix and location.startswith(prefix):
+                legend = "..." + location[len(prefix):]
+            legends[location] = legend
+
+        timelines = []
         for key in counts.keys():
+            server, location = key
             c = counts[key]
             n = points[key]
             a = [None]*nbins
             for i in range(nbins):
                 if n[i] > 0:
                     a[i] = c[i]/n[i]
-            server, location = key
-            k = "%s:%s" % (server, location)
-            averages[k] = a
-            prefix = common_prefixes.get(server, "")
-            legend = k
-            if prefix and location.startswith(prefix):
-                if location == prefix:
-                    loc = '/'+location.rsplit('/',1)[-1]
-                else:
-                    loc = location[len(prefix):]
-                legend = "%s:...%s" % (server, loc)
-            legends[k] = legend
-            
+            timelines.append({
+                "server":server,
+                "location":location,
+                "counts":a
+            })            
         
         return json.dumps(
             {
-                "tmin":     tmin,
-                "tmax":     tmax,
-                "bin":      bin,
-                "legends":  legends,
-                "keys":     sorted(list(averages.keys())),
+                "tmin":         tmin,
+                "tmax":         tmax,
+                "bin":          bin,
+                "legends":      legends,
                 "locations":    sorted(list(locations)),
                 "servers":      sorted(list(servers)),
-                "averages":   averages
+                "timelines":    timelines
             }
         ), "text/json"
         

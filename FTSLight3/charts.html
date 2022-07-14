@@ -31,6 +31,12 @@
 <h3>Events</h3>
 <div id="event_chart" style="width:1500px; height:400px"></div>
 <h3>Files</h3>
+<table class="form">
+    <tr>
+        <td>Servers:<select id="server_select"></select></td>
+        <td>Locations:<select id="location_select"></select></td>
+    </tr>
+</table>
 <div id="scanner_chart" style="width:1500px; height:400px"></div>
 <h3>Transfer rates</h3>
 <div id="rate_chart" style="width:1500px; height:400px"></div>
@@ -271,6 +277,7 @@
         
         function ScannerCounts(div_id, url)
         {
+            this.Data = null;
             this.URL = url;
             this.Element = document.getElementById(div_id);
             this.request_data = function (scale) {
@@ -279,39 +286,91 @@
                 var url = this.URL + "?since_t=-"+w + "&bin="+bin;
                 var request = HTTPRequest(url, this);
             }
+            this.aggregate = function(timelines, server, location)
+            {
+                var out = null;
+                for( timeline of timelines )
+                    if( (server == "(all)" || timeline.server == server) && (location == "(all)" || timeline.location == location))
+                    {
+                        var i;
+                        if( out == null )
+                        {
+                            out = [];
+                            for( i=0; i<timeline.counts.length; i++ )
+                                out.push(timeline.counts[i]);
+                        }
+                        else
+                            for( i=0; i<timeline.counts.length; i++ )
+                                out[i] += timeline.counts[i];
+                    }
+                return out;
+            }
+            this.populate_selector(sel_id, values)
+            {
+                var o = document.getElementById(sel_id);
+                var current_value = o.value;
+                o.innerHTML = '<option value="(all)">*</option>';
+                for( var value of values )
+                {
+                    var item = document.createElement("option");
+                    item.selected = current_value == value;
+                    item.value = value;
+                    item.innerHTML = value;
+                    o.appendChild(item);
+                }
+            }
             this.data_received = function(data)
             {
                 document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
-                var times = [];
-                var t;
-                for( t=data.tmin; t<data.tmax; t += data.bin )
-                	times.push(new Date(t*1000));
-                var traces = [];
-                var maxname = 10;
+                this.Data = data;
+                this.MaxName = 10;
                 for( var key of data.keys )
                     if( key != '*' )
+                        if( data.legends[key].length > this.MaxName )
+                            this.MaxName = data.legends[key].length;
+                this.Times = [];
+                var t;
+                for( t=data.tmin; t<data.tmax; t += data.bin )
+                	this.Times.push(new Date(t*1000));
+                
+                this.populate_selector("server_select", data.servers);
+                this.populate_selector("location_select", data.locations);
+                
+                this.draw();
+            }
+            this.draw = function()
+            {
+                if( this.Data == null )
+                    return;
+
+                var server_selected = document.getElementById("server_select").value;
+                var location_selected = document.getElementById("location_select").value;
+                
+                var timeline = this.aggregate(data.timelines, server_selected, location_selected);
+                
+                var location_legend = this.Data.legends[location_selected];
+                if ( location_legend == null )
+                    location_legend = location_selected;
+                var legend = server_selected + ':' + location_legend;
+                
+                var traces = [
                     {
-                        traces.push(
-                            {
-                                mode: 'lines',
-                                connectgaps: false,
-                                x: times,
-                                y: data.averages[key],
-                                name: data.legends[key],
-                                hovermode: 'x',
-                                line: {
-                                    width: 1.0
-                                }
-                            }
-                        );
-                        if( data.legends[key].length > maxname )
-                            maxname = data.legends[key].length;
+                        mode: 'lines',
+                        connectgaps: false,
+                        x: times,
+                        y: timeline,
+                        name: location_legend,
+                        hovermode: 'x',
+                        line: {
+                            width: 1.0
+                        }
                     }
+                ];
                 var layout = {
                     //hovermode: 'x',
                     margin: {   r: 500 },
                     hoverlabel: {
-                        namelength: maxname+10
+                        namelength: legend.length+10
                     },
                     legend: {
                         bgcolor: "rgba(0.9, 0.9, 0.9, 0.2)",
@@ -324,7 +383,7 @@
                     },
                     xaxis: {
                         type: "date",
-                        range: [new Date(data.tmin*1000), new Date(data.tmax*1000)] 
+                        range: [new Date(this.Data.tmin*1000), new Date(this.Data.tmax*1000)] 
                     },
                     yaxis: {
                         title: {
