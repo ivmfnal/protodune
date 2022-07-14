@@ -195,9 +195,9 @@ class Handler(WPHandler):
         legends = {}
         for location in locations:
             legend = location
-            if location == prefix:
+            if location == common_prefix:
                 legend = '.../'+location.rsplit('/',1)[-1]
-            elif prefix and location.startswith(prefix):
+            elif common_prefix and location.startswith(common_prefix):
                 legend = "..." + location[len(prefix):]
             legends[location] = legend
 
