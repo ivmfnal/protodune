@@ -342,7 +342,7 @@
                 var server_selected = document.getElementById("server_select").value;
                 var location_selected = document.getElementById("location_select").value;
                 
-                var timeline = this.aggregate(data.timelines, server_selected, location_selected);
+                var timeline = this.aggregate(this.Data.timelines, server_selected, location_selected);
                 
                 var location_legend = this.Data.legends[location_selected];
                 if ( location_legend == null )
