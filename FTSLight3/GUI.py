@@ -198,7 +198,7 @@ class Handler(WPHandler):
             if location == common_prefix:
                 legend = '.../'+location.rsplit('/',1)[-1]
             elif common_prefix and location.startswith(common_prefix):
-                legend = "..." + location[len(prefix):]
+                legend = "..." + location[len(common_prefix):]
             legends[location] = legend
 
         timelines = []
