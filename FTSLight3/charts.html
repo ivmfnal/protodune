@@ -324,10 +324,6 @@
                 document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
                 this.Data = data;
                 this.MaxName = 10;
-                for( var key of data.keys )
-                    if( key != '*' )
-                        if( data.legends[key].length > this.MaxName )
-                            this.MaxName = data.legends[key].length;
                 this.Times = [];
                 var t;
                 for( t=data.tmin; t<data.tmax; t += data.bin )
