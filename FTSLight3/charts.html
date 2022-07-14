@@ -33,8 +33,12 @@
 <h3>Input files</h3>
 <table class="formatting">
     <tr>
-        <td>Servers:<select id="server_select" onchange="updateScannerChart()"></select></td>
-        <td>Locations:<select id="location_select" onchange="updateScannerChart()"></select></td>
+        <td>Server:<select id="server_select" onchange="updateScannerChart()">
+            <option value="(all)">(all)</option>
+        </select></td>
+        <td>Location:<select id="location_select" onchange="updateScannerChart()">
+            <option value="(all)">(all)</option>
+        </select></td>
     </tr>
 </table>
 <div id="scanner_chart" style="width:1500px; height:400px"></div>
@@ -309,7 +313,7 @@
             {
                 var o = document.getElementById(sel_id);
                 var current_value = o.value;
-                o.innerHTML = '<option value="(all)">*</option>';
+                o.innerHTML = '<option value="(all)">(all)</option>';
                 for( var value of values )
                 {
                     var item = document.createElement("option");
@@ -355,7 +359,6 @@
                         connectgaps: false,
                         x: this.Times,
                         y: timeline,
-                        name: location_legend,
                         hovermode: 'x',
                         line: {
                             width: 1.0
