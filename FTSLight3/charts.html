@@ -33,8 +33,8 @@
 <h3>Input files</h3>
 <table class="formatting">
     <tr>
-        <td>Servers:<select id="server_select"></select></td>
-        <td>Locations:<select id="location_select"></select></td>
+        <td>Servers:<select id="server_select" onchange="updateScannerChart()"></select></td>
+        <td>Locations:<select id="location_select" onchange="updateScannerChart()"></select></td>
     </tr>
 </table>
 <div id="scanner_chart" style="width:1500px; height:400px"></div>
@@ -397,6 +397,11 @@
         var rate_histogram = null;
         var scanner_chart = null;
 
+        function updateScannerChart()
+        {
+            if( scanner_chart != null )
+                scanner_chart.draw();
+        }
     
         function updateCharts()
         {
