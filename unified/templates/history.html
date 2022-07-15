@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Transfer History</h1>
+
+<table class="data">
+    <tr>
+        <th>File</th><th>Size,&nbsp;MB</th><th>Started</th><th>Ended</th><th>Elapsed</th><th>Rate,&nbsp;MB/s</th><th>Status</th><th>Error</th>
+    </tr>
+    {% for t in transfers %}
+        <tr>
+	    <td><a href="./task_log/{{t.Name}}">{{t.Name}}</a></td>
+            <td>{{t.Size|pretty_size}}</td>
+            <td>{{t.Started|as_dt_utc}}</td>
+            <td>{{t.Ended|as_dt_utc}}</td>
+            <td>{{t.Ended|pretty_delta(t.Started)}}</td>
+            <td>{% if not t.Size is none %} {{"%.3f"|format(t.Size/(t.Ended-t.Started)/1024.0/1024.0)}} {% endif %}</td>
+            <td>{{t.Status}}</td>
+            <td><pre>{{t.Info or ""}}</pre></td>
+        </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

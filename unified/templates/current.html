@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Active Transfers</h1>
+
+{% if transfers|length %}
+
+	<table class="data">
+	    <tr>
+		<th>File</th><th>Size</th><th>Queued</th><th>Started</th><th>Updated<th>Status</th>
+	    </tr>
+	    {% for t in transfers %}
+		<tr>
+		    <td><a href="./task_log/{{t.name}}">{{t.name}}</a></td>
+                    <td>{{t.FileDesc.Size|pretty_size}}</td>
+		    <td>{{t.Queued|as_dt_utc}}</td>
+		    <td>{{t.Started|as_dt_utc}}</td>
+		    <td>{{t.LastUpdate|as_dt_utc}}</td>
+		    <td>{{t.Status}}</td>
+		</tr>
+	    {% endfor %}
+	</table>
+
+{% else %}
+
+	<p>No active transfers</p>
+
+{% endif %}
+
+{% endblock %}

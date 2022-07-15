@@ -1,0 +1,298 @@
+{% extends "base.html" %}
+
+{% block html_head %}
+<script src="{{GLOBAL_AppTopPath}}/static/requests.js"></script>
+<script src="https://cdn.plot.ly/plotly-2.12.1.min.js"></script>
+
+{% endblock %}
+
+{% block content %}
+
+<h2>Charts</h2>
+
+<p>
+<table class="formatting" style="width:100%">
+    <tr>
+        <td style="width:100pt; white-space: nowrap">Chart range: <select id="chart_window" onchange="refresh_charts()" onload="updateCharts()">
+                <option value="hour" selected="selected">hour</option>
+                <option value="day">day</option>
+                <option value="week">week</option>
+            </select>
+        </td>
+        <td style="width:100pt; text-align:right; white-space: nowrap"><input type="checkbox" id="auto_refresh" checked="checked">&nbsp;auto-update
+        </td>
+        <td style="text-align:right; white-space: nowrap">&nbsp;&nbsp;&nbsp;<span style="color:#AAA">updated at</span> <span
+                        id="refreshed_at" style="color:#AAA"></span>
+        </td>
+    </tr>
+</table>
+</p>
+
+<div id="event_chart" style="width:1000px; height:500px"></div>
+<div id="rate_chart" style="width:1000px; height:500px"></div>
+<div id="rate_histogram" style="width:1000px; height:500px"></div>
+
+<script>
+    var scales = {
+          "day": {
+              "axisLabelInterval":    "minute",
+              "window":  "24h",
+              "windowSeconds":   24*3600,
+              "bin":    "5m",
+              "minPeriod":        "mm",
+              "balloonFormat":    "HH:NN"
+          },
+          
+          "week": {
+              "axisLabelInterval":    "10 minutes",
+              "window":  "7d",
+              "windowSeconds":   24*3600*7,
+              "bin":    "1h",
+              "minPeriod":        "mm",
+              "balloonFormat":    "HH:NN"
+          },
+          
+          "hour": {
+              "axisLabelInterval":    "10 seconds",
+              "window":  "1h",
+              "windowSeconds":   3600,
+              "bin":    "1m",
+              "minPeriod":        "ss",
+              "balloonFormat":    "HH:NN:SS"
+          }
+      };
+    
+    function RateHistogram(div_id, url)
+    {
+        this.URL = url;
+        this.Element = document.getElementById(div_id);
+        this.request_data = function (scale) {
+            var w = scales[scale].window;
+            var url = this.URL + "?since_t=-"+w;
+            var request = XMLRequest(url, this);
+        }
+        this.data_received = function(data)
+        {
+            document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
+            var x = [];
+            var y = [];
+            var ymax = 1;
+            for( row of data.data )
+            {
+                x.push(row.rate/1000000);
+                y.push(row.count);
+                if( ymax < row.count )
+                    ymax = row.count;
+            }
+            var trace = {
+                x: x,
+                y: y,
+                mode: "lines",
+                fill: "tozeroy",
+                line: {
+                    shape: 'hv',
+                    width: 0
+                },
+                type: 'scatter' 
+            };
+            var layout = {
+                xaxis: {
+                    title: {
+                        text: "Rate, MB/s"
+                    }
+                },
+                yaxis: {
+                    title: {
+                        text: "Count"
+                    },
+                    type: "log",
+                    range: [-0.5, Math.ceil(Math.log10(ymax))+0.5]
+                }
+            }
+            Plotly.react(this.Element, [trace], layout);
+        }
+    }
+
+    function Rates(div_id, url)
+    {
+        this.URL = url;
+        this.Element = document.getElementById(div_id);
+        this.request_data = function (scale) {
+            var w = scales[scale].window;
+            var bin = scales[scale].bin;
+            var url = this.URL + "?since_t=-"+w;
+            var request = XMLRequest(url, this);
+        }
+        
+        this.data_received = function(data)
+        {
+            document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
+            var x = [];
+            var y = [];
+            var marker_width = [];
+            var rmax = null;
+            var rmin = null;
+            for( row of data.data )
+            {
+                x.push(new Date((row.tend - row.elapsed/2)*1000));
+                var r = row.size/row.elapsed;
+                y.push(r);
+                var marker_size = row.elapsed/(data.tmax-data.tmin)*1000;
+                marker_size = 2;
+                if( marker_size < 5 )   marker_size = 5;
+                marker_width.push(marker_size);
+                if( rmax == null || r > rmax )  rmax = r;
+                if( rmin == null || r < rmin )  rmin = r;
+            }
+            
+            if( rmin == null )  rmin = 1.0;
+            if( rmax == null )  rmax = 10.0;
+
+            var vmax = Math.ceil(Math.log10(rmax))+0.5;
+            var vmin = Math.floor(Math.log10(rmin))-0.5;
+            
+            var trace = {
+                x: x,
+                y: y,
+                mode: "markers",
+                type: 'scatter',
+                marker: {
+                    symbol: "line-ew-open",
+                    size: marker_width,
+                    line: {
+                        width: 1.5
+                    },
+                    opacity: 0.8
+                }
+            };
+            var layout = {
+                yaxis: {
+                    type: "log",
+                    range: [vmin, vmax],
+                    title: {
+                        text: "Transfer rate, B/s"
+                    }
+                },
+                xaxis: {
+                    type: "date",
+                    range: [
+                        new Date(data.tmin*1000),
+                        new Date(data.tmax*1000),
+                    ],
+                    title: {
+                        text: "Date/time"
+                    }
+                }
+            }
+            Plotly.react(this.Element, [trace], layout);
+        }
+    }
+    
+    function EventCounts(div_id, url)
+    {
+        this.URL = url;
+        this.Element = document.getElementById(div_id);
+        this.colors = {
+            "quarantined": "#44C", 
+            "done": "#4C4",
+            "failed": "#C44"
+        };
+        this.request_data = function (scale) {
+            var w = scales[scale].window;
+            var bin = scales[scale].bin;
+            var url = this.URL + "?since_t=-"+w + "&bin="+bin;
+            var request = XMLRequest(url, this);
+        }
+        this.data_received = function(data)
+        {
+            document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
+            var traces = [];
+            var i;
+            for( i=0; i<data.events.length; i++ )
+            {
+                var event = data.events[i];
+                var x = [];
+                var y = [];
+                for( row of data.rows )
+                {
+                    var v = row[i+1];
+                    x.push(new Date(row[0]*1000));
+                    y.push(v);
+                }
+                var trace = {
+                    x: x,
+                    y: y,
+                    name: event,
+                    mode: "scatter",
+                    type: "lines",
+                    line: {
+                        "shape": "hv",
+                        width: 0
+                    }, 
+                    stackgroup: "one",
+                    connectgaps: false
+                };
+                if( event in this.colors )
+                    trace["fillcolor"] = this.colors[event];
+                
+                traces.push(trace);
+            }
+            var layout = {
+                hovermode: 'x',
+                xaxis: {
+                    type: "date"
+                },
+                yaxis: {
+                    title: {
+                        text: "Event count/bin"
+                    }
+                }
+            }
+            Plotly.react(this.Element, traces, layout);
+        }
+    }
+    
+    var events_counts_chart = null;
+    var rate_chart = null;
+    var rate_histogram = null;
+    
+    function refresh_charts()
+    {
+        var w = document.getElementById("chart_window").value;
+        if( events_counts_chart != null )
+            events_counts_chart.request_data(w);
+        if( rate_chart != null )
+            rate_chart.request_data(w);
+        if( rate_histogram != null )
+            rate_histogram.request_data(w);
+    }
+    
+    function initCharts()
+    {
+        events_counts_chart = new EventCounts("event_chart", "./event_counts");
+        rate_chart = new Rates("rate_chart", "./transfer_rates");
+        rate_histogram = new RateHistogram("rate_histogram", "./rate_histogram");
+        refresh_charts();
+    }
+
+    initCharts();
+
+    setInterval( function() {
+            if( document.getElementById("auto_refresh").checked )   
+            {
+                refresh_charts();
+            }
+        },
+        60000)
+    
+</script>
+
+
+        
+
+
+
+
+{% endblock %}
+    
+

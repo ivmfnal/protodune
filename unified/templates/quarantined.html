@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Quarantined Files</h1>
+
+{% if files|length %}
+
+	<table class="data">
+	    <tr>
+		<th>Name</th><th>Size</th><th>Time</th><th>Status</th><th>Reason</th>
+	    </tr>
+	    {% for d in files %}
+                {% set last_record = d.LastRecord %}
+                {% if not last_record is none %}
+                        {% set tstart, tend, status, info, size = last_record %}
+                {% endif %}
+		<tr>
+		    <td>{{d.Name}}</td>
+                    <td>{{d.Size|pretty_size}}</td>
+		    <td>{{'' if last_record is none else tend|as_dt_utc}}</td>
+		    <td>{{'' if last_record is none else status}}</td>
+		    <td><pre>{{'' if last_record is none else info}}</pre></td>
+		</tr>
+	    {% endfor %}
+	</table>
+
+{% else %}
+
+	<p>No quarantined files</p>
+
+{% endif %}
+
+{% endblock %}

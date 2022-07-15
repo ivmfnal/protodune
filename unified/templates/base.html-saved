@@ -1,0 +1,315 @@
+<html>
+
+<head>
+
+	<!-- <link rel="shortcut icon" href="{{GLOBAL_AppTopPath}}/static/images/favicon.png" type="image/x-icon"/> -->
+
+    <style type="text/css">
+
+        body, td, th, p, div {
+            font: 14px arial;
+        }
+        td, th {
+            vertical-align: top
+        }
+        div#content {
+            margin-right: 30px;
+            margin-left: 30px;
+            margin-top: 20px;
+	    width: 100%;
+        }
+		
+	div#banner, div#main_menu {
+		padding: 30px 10px;
+	}
+	
+	div#main_menu {
+		padding: 10px 30px;
+	}
+
+	#b-anner td {
+		vertical-align: middle;
+		padding: 0px 20px;
+	}
+
+	div#body {
+            margin-right: 30px;
+            margin-left: 30px;
+            margin-top: 20px;
+            padding: 10px 10px;
+	}
+        
+        
+        table.data, table.file_metadata {
+            border-collapse: collapse;
+        }
+        
+        .placement td, th {
+            p-adding: 5px;
+        } 
+            
+        .placement th {
+            font-weight: bold;
+            text-align:  left;
+        }
+        
+        .link_menu td {
+            padding: 5px;
+        }
+        
+        .file_metadata td, .file_metadata th {
+            padding: 3px 5px;
+            b-order-top: 1px solid #CCC;
+            b-order-bottom: 1px solid #CCC;
+        }
+        
+        .tabular td, .tabular th {
+            padding: 5px;
+        }
+
+        .tabular th {
+            font-weight: bold;
+            text-align:  right;
+        }
+        
+        td.left {
+            text-align: left;
+        }
+        td.right {
+            text-align: right;
+        }
+
+	.form th {
+		font-weight: bold;
+		text-align:  right;
+	}
+
+	.form td {
+		text-align:  left;
+	}
+	.form td, .form th {
+		padding: 5px;
+	}
+
+    .data td, .data th {
+        padding: 3px 5px;
+        border: 1px solid #CCC;
+    }
+    
+    .data th {
+        font-weight: bold;
+        text-align: left;
+    }
+    
+        textarea {
+            font: 14px courier;
+            }
+            
+        i-nput {
+            font: 400 14px verdana;
+        }
+        
+    div#version {
+        color: gray;
+        font-size: 10px;
+        font-style: italic;
+        
+        position: fixed;
+        bottom: 3px;
+        right: 5px;
+    }
+    
+    div.headline {
+        border-top: 1px solid black;
+        border-bottom: 1px solid black;
+        font-weight: bold;
+        padding: 5px 15px;
+        font-size: 14pt;
+        margin-top: 15px;
+        margin-bottom: 15px;
+    }
+
+    #main_menu td, #main_menu th {
+	white-space: nowrap;
+	}
+
+    .code {
+        font: 12px monospace;
+        }
+        
+    pre.code {
+        b-ackground-color: #F8F8F8;
+        padding: 5px;
+        b-order: solid 1px #E0E0E0;
+        }
+        
+    p.message {
+        border: solid 1px #117711;
+        padding: 5px 15px;
+    }
+    
+    .error {
+        color: #A11;
+    }
+
+    p.error {
+        border-left: solid 5px #A11;
+        padding: 0px 5px;
+    }
+        
+    .file_metadata th {
+        text-align: left;
+        font-weight: bold;
+        color: #888;
+    }
+    
+    .filename {
+        font-family:  source_code, monospace;
+        font-size: 12px;
+    }
+    
+    .file_metadata td.attr_name, .file_metadata td.meta_whole {
+        padding-left:50px;
+    }
+    
+    .file_metadata td.attr_name, .file_metadata td.attr_value, pre.metadata {
+        font-family:  source_code, monospace;
+        font-size: 11px;
+    }
+    
+    .file_metadata td.fid, .file_metadata td.filename {
+        font-family:  source_code, monospace;
+        font-size: 12px;
+    }
+    
+    .file_metadata a:link, .file_metadata a:visited {
+            text-decoration: none;
+            color: #44A;
+        }
+
+    #meta_stats_toggle {
+        font: 16px monospace;
+    }
+
+    .query_text {
+        font-family:  source_code, monospace;
+        
+    }
+
+    .attributes td, .attributes th {
+        font-family: source_code, monospace;
+    }
+    
+    .dense td, .dense th    {
+        padding: 1px 3px;        
+    }
+
+    td.nopadding {
+        padding: 0;
+    }
+
+    .disabled td {
+        color: #AAA;
+    }
+
+    .failed {
+        background-color: #F88;
+    }
+
+    .done {
+        background-color: #8F8;
+    }
+
+    .cancelled {
+        background-color: #FCC;
+    }
+
+    .initial {
+        background-color: #EEE;
+    }
+
+    .reserved, .active {
+        background-color: #FF8;
+    }
+
+    .found {
+        background-color: #88F;        
+    }
+    
+    .available {
+        background-color: #8FF;             // #8F8        
+    }
+    
+    .unavailable {
+        background-color: #FF8;        
+    }
+    
+    a, a:visited {
+        color: #228;
+    }
+    
+    a.button, a.button:visited {
+        color: #228;
+        padding: 3px 3px;  
+    }
+    
+    </style>
+    
+    <script src="{{GLOBAL_AppTopPath}}/static/js/request.js"></script>
+    
+    {% block html_head %}{% endblock %}
+	
+	<title>{% block page_title %}{{GLOBAL_SiteTitle}}{% endblock %}</title>
+</head>
+
+<body>
+
+<!--  Globals 
+    APP_URL: "{{APP_URL}}"
+    MY_PATH: "{{MY_PATH}}"
+    GLOBAL_AppTopPath: "{{GLOBAL_AppTopPath}}"
+    GLOBAL_AppDirPath: "{{GLOBAL_AppDirPath}}"
+    GLOBAL_ImagesPath: "{{GLOBAL_ImagesPath}}"
+    GLOBAL_AppVersion: "{{GLOBAL_AppVersion}}"
+    GLOBAL_AppObject:  "{{GLOBAL_AppObject}}"
+    GLOBAL_User:  "{{GLOBAL_User}}"
+-->
+
+<div id="title" style="padding:30px 30px">
+    <h1>{{GLOBAL_SiteTitle}}</h1>
+</div>
+
+<div id="main_menu">
+	<table class="placement link_menu" width="100%">
+    	<tr>
+    	    <td><a class=button href="{{GLOBAL_URL_Prefix}}/current">active</a></td>
+    	    <td><a class=button href="{{GLOBAL_URL_Prefix}}/recent">recent</a></td>
+    	    <td><a class=button href="{{GLOBAL_URL_Prefix}}/history">history</a></td>
+    	    <td><a class=button href="{{GLOBAL_URL_Prefix}}/quarantined">quarantined</a></td>
+            <td><a class=button href="{{GLOBAL_URL_Prefix}}/ls_input">input location</a></td>
+            <td><a class=button href="{{GLOBAL_URL_Prefix}}/config">configuration</a></td>
+            <td style="width:100%"></td>
+            <td style="color:gray">all times in UTC</td>
+    	</tr>
+    </table>
+</div>
+    
+
+<div id="body">
+
+    <div id="headline" style="clear:both">
+        {% if message is defined and message %}
+            <p class=message>{{message}}</p>
+        {% endif %}
+        {% if error is defined and error %}
+            <p class=error>{{error}}</p>
+        {% endif %}
+    	<h2>{% block headline %}{% endblock %}</h2>
+    </div>
+    <div id=content style="clear:both">{% block content %}{% endblock %}</div>
+</div>	<!-- body -->
+
+<div id="version">Version: {{GLOBAL_Version}}</div>
+</body>
+
+</html>

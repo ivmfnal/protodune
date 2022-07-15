@@ -1,0 +1,212 @@
+{% extends "base.html" %}
+
+{% block html_head %}
+<script src="{{GLOBAL_URL_Prefix}}/static/requests.js"></script>
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+{% endblock %}
+
+{% block content %}
+
+<h2>Charts</h2>
+
+<p>
+<table class="formatting" style="width:100%">
+    <tr>
+        <td style="width:100pt; white-space: nowrap">Chart range: <select id="chart_window" onchange="refresh_charts()" onload="updateCharts()">
+                <option value="hour" selected="selected">hour</option>
+                <option value="day">day</option>
+                <option value="week">week</option>
+            </select>
+        </td>
+        <td style="width:100pt; text-align:right; white-space: nowrap"><input type="checkbox" id="auto_refresh" checked="checked">&nbsp;auto-update
+        </td>
+        <td style="text-align:right; white-space: nowrap">&nbsp;&nbsp;&nbsp;<span style="color:#AAA">updated at</span> <span
+                        id="refreshed_at" style="color:#AAA"></span>
+        </td>
+    </tr>
+</table>
+</p>
+
+<div id="event_chart" style="width:100%; height:400px"></div>
+<div id="rate_chart" style="width:100%; height:400px"></div>
+<div id="rate_histogram" style="width:100%; height:400px"></div>
+
+<script>
+    var scales = {
+          "day": {
+              "axisLabelInterval":    "minute",
+              "window":  "24h",
+              "windowSeconds":   24*3600,
+              "bin":    "5m",
+              "minPeriod":        "mm",
+              "balloonFormat":    "HH:NN"
+          },
+          
+          "week": {
+              "axisLabelInterval":    "10 minutes",
+              "window":  "7d",
+              "windowSeconds":   24*3600*7,
+              "bin":    "1h",
+              "minPeriod":        "mm",
+              "balloonFormat":    "HH:NN"
+          },
+          
+          "hour": {
+              "axisLabelInterval":    "10 seconds",
+              "window":  "1h",
+              "windowSeconds":   3600,
+              "bin":    "1m",
+              "minPeriod":        "ss",
+              "balloonFormat":    "HH:NN:SS"
+          }
+      };
+    
+    function RateHistogram(div_id, url)
+    {
+        this.URL = url;
+        this.Chart = new google.visualization.SteppedAreaChart(document.getElementById(div_id));
+        this.request_data = function (scale) {
+            var w = scales[scale].window;
+            var url = this.URL + "?since_t=-"+w;
+            var request = XMLRequest(url, this);
+        }
+        this.data_received = function(data)
+        {
+            var options = {
+                hAxis:  {
+                    minValue: data.xmin/1000000,
+                    maxValue: data.xmax/1000000,
+                    title: "Rate, MB/s"
+                }
+            };
+            var rows = [
+                ["Rate, MiB/s", "Count"]
+            ];
+            for( row of data.data )
+                rows.push([(row.rate+data.bin/2)/1000000, row.count]);
+            this.Chart.draw(google.visualization.arrayToDataTable(rows), options);
+        }
+    }
+
+    function Rates(div_id, url)
+    {
+        this.URL = url;
+        this.Chart = new google.visualization.ScatterChart(document.getElementById(div_id));
+        this.request_data = function (scale) {
+            var w = scales[scale].window;
+            var bin = scales[scale].bin;
+            var url = this.URL + "?since_t=-"+w;
+            var request = XMLRequest(url, this);
+        }
+        this.data_received = function(data)
+        {
+            var options = {
+                hAxis: {
+                    format: 'M/d/yy hh:mm:ss'
+                }
+            };
+            var rows = [
+                [{type: 'datetime', label: 'Time'}, "rate"],
+            ];
+            for( row of data )
+            {
+                var dt = new Date((row.tend - row.elapsed/2)*1000);
+                rows.push([dt, row.size/row.elapsed]);
+            }
+            if( rows.length < 2 )
+                this.Chart.clearChart();
+            else
+                this.Chart.draw(google.visualization.arrayToDataTable(rows), options)
+        }
+    }
+    
+    function EventCounts(div_id, url)
+    {
+        this.URL = url;
+        this.Chart = new google.visualization.SteppedAreaChart(document.getElementById(div_id));
+        this.request_data = function (scale) {
+            var w = scales[scale].window;
+            var bin = scales[scale].bin;
+            var url = this.URL + "?since_t=-"+w + "&bin="+bin;
+            var request = XMLRequest(url, this);
+        }
+        this.data_received = function(data)
+        {
+            var options = {
+                lineWidth: 0.5,
+                isStacked: true,
+                vAxis: {    minValue: 0 },
+                series: {
+                    0: { color: "green" },
+                    1: { color: "red"   },
+                    2: { color: "blue"  }
+                },
+                hAxis: {
+                    format: 'M/d/yy hh:mm:ss'
+                }
+            };
+            var desc_row = [{type: 'datetime', label: 'Time'}];
+            for( e of data.events )
+                desc_row.push(e);
+            var rows = [desc_row];
+            var max_count = 0;
+            for(row of data.rows)
+            {
+                row[0] = new Date(row[0]*1000);
+                rows.push(row);
+                for( var i=1; i<row.length; i++ )
+                    if( row[i] > max_count )
+                        max_count = row[i];
+            }
+            if( max_count <= 10 )
+                options["vAxis"]["maxValue"] = 10; 
+            this.Chart.draw(google.visualization.arrayToDataTable(rows), options)
+        }
+    }
+    
+    var events_counts_chart = null;
+    var rate_chart = null;
+    var rate_histogram = null;
+    
+    function refresh_charts()
+    {
+        var w = document.getElementById("chart_window").value;
+        if( events_counts_chart != null )
+            events_counts_chart.request_data(w);
+        if( rate_chart != null )
+            rate_chart.request_data(w);
+        if( rate_histogram != null )
+            rate_histogram.request_data(w);
+    }
+    
+    function initCharts()
+    {
+        events_counts_chart = new EventCounts("event_chart", "./event_counts");
+        rate_chart = new Rates("rate_chart", "./transfer_rates");
+        rate_histogram = new RateHistogram("rate_histogram", "./rate_histogram");
+        refresh_charts();
+    }
+
+    setInterval( function() {
+            if( document.getElementById("auto_refresh").checked )   
+            {
+                refresh_charts();
+            }
+        },
+        10000)
+    
+    google.charts.load('current', {'packages':['corechart']});
+          google.charts.setOnLoadCallback(initCharts);
+    
+</script>
+
+
+        
+
+
+
+
+{% endblock %}
+    
+

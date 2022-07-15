@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h1>Input Location Scan</h1>
+
+<table class="form">
+	<tr><th>Server:</th><td>{{server}}</td></tr>
+	<tr><th>Location:</th><td>{{location}}</td></tr>
+</table>
+
+{% if error %}
+	<pre>Error: {{error}}</pre>
+
+{% elif files|length %}
+
+	<table class="data">
+	    <tr>
+			<th>Name</th><th>Size</th>
+	    </tr>
+	    {% for desc in files %}
+		<tr>
+		    <td>{{desc.Name}}</td>
+		    <td>{{desc.Size|pretty_size}}</td>
+		</tr>
+	    {% endfor %}
+	</table>
+
+{% else %}
+
+	<p>No input files</p>
+
+{% endif %}
+
+{% endblock %}
