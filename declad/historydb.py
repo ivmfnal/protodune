@@ -2,7 +2,7 @@ import sqlite3, time, sys
 from logs import Logged
 from pythreader import Primitive, synchronized, PyThread
 
-class _Record(object):
+class _FileRecord(object):
     def __init__(self, filename, tstart, tend, status, info, size):
         self.Name = filename
         self.Size = size
@@ -10,6 +10,15 @@ class _Record(object):
         self.Ended = tend
         self.Status = status
         self.Info = info
+
+class _ScannerRecord(object):
+    def __init__(self, server, location, t, nfiles, nnew, error):
+        self.Server = server
+        self.Location = location
+        self.T = t
+        self.NFiles = nfiles
+        self.NNew = nnew
+        self.Error = error
 
 class _HistoryDB(PyThread, Logged):
 
@@ -68,6 +77,37 @@ class _HistoryDB(PyThread, Logged):
             c.execute("""
                 create index if not exists file_log_fn_event_inx on file_log(filename, status)
                 """)
+            c.execute("""
+                create table if not exists scanner_log(
+                    server      text,
+                    location    text,
+                    t           float,
+                    nfiles      int,
+                    nnew        int,
+                    error       text,
+                    primary key(server, location, t)
+                )
+            """)
+
+    @synchronized
+    def add_scanner_record(self, server, location, t, n, nnew):
+        with self.dbconn() as conn:
+            c = conn.cursor()
+            c.execute("insert into scanner_log(server, location, t, nfiles, nnew) values(?,?,?,?,?)",
+                (server, location, t, n, nnew)
+            )
+            conn.commit()
+            
+    @synchronized
+    def scannerHistorySince(self, t=0):
+        with self.dbconn() as conn:
+            c = conn.cursor()
+            c.execute("""select server, location, t, nfiles, nnew, error
+                    from scanner_log 
+                    where t >= ?
+                    order by server, location, t""", (t,)
+            )
+            return [_ScannerRecord(*tup) for tup in c.fetchall()]
 
     @synchronized
     def add_record(self, filename, size, tstart, tend, status, info):

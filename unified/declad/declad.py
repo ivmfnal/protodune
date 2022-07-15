@@ -428,11 +428,11 @@ class MoverTask(Task, Logged):
         else:
             raise ValueError("Quarantine directory unspecified")
 
-class Manager(PyThread, Logged):
+class Declad(PyThread, Logged):
     
     def __init__(self, config, history_db):
-        PyThread.__init__(self, name="Mover")
-        Logged.__init__(self, name="Mover")
+        PyThread.__init__(self, name="Declad")
+        Logged.__init__(self, name="Declad")
         self.Config = config
         capacity = config.get("queue_capacity")
         max_movers = config.get("max_movers", 10)
@@ -468,20 +468,23 @@ class Manager(PyThread, Logged):
         return sorted(self.RecentTasks.values(), key=lambda t: -t.last_event()[1] or 0)
         
     @synchronized
-    def current_transfers(self):
+    def current_tasks(self):
         waiting, active = self.TaskQueue.tasks()
         return active + waiting
 
+    def task_history(self):
+        return list(self.HistoryDB.historySince())[::-1]
+
     @synchronized
-    def add_files(self, files_dict):
-        # files_dict: {name:desc}
+    def add_files(self, files):
+        # files: list of FileDesc's
         # purge expired retry-after entries and the list of found but delayed files
         #self.RetryAfter = dict((name, t) for name, t in self.RetryAfter.items() if t > time.time())
         #self.Delayed = dict((name, t) for name, t in self.Delayed.items() if t > time.time())
         waiting, active = self.TaskQueue.tasks()
         in_progress = set(t.name for t in waiting + active)
         nqueued = 0
-        for name, filedesc in files_dict.items():
+        for filedesc in files:
             name = filedesc.Name
             if name not in in_progress:
                 task = self.RecentTasks.get(name)

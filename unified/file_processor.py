@@ -7,50 +7,6 @@ import historydb, pprint, time, threading
 from web_server import App
 from webpie import HTTPServer
 
-class DeclaD(PyThread, Logged):
-    
-    def __init__(self, config, history_db):
-        PyThread.__init__(self, name="DeclaD")
-        Logged.__init__(self, "declad")
-        self.Config = config
-        self.HistoryDB = history_db
-        self.MoverManager = Manager(config, self.HistoryDB)
-        self.Scanner = Scanner(self.MoverManager, config)
-        self.Stop = False
-
-    def run(self):
-        self.HistoryDB.start()
-        self.Scanner.start()
-        self.MoverManager.start()
-        while not self.Stop:
-            self.sleep(100)
-
-    def current_transfers(self):
-        return self.MoverManager.current_transfers()
-
-    def finished_transfers(self):
-        return list(self.HistoryDB.historySince())[::-1]
-
-    def quarantined(self):
-        files, error = self.MoverManager.quarantined()		# file descriptors
-        if files:
-            status_records = self.HistoryDB.latest_records_bulk([d.Name for d in files])
-            for d in files:
-                d.LastRecord = status_records.get(d.Name)
-        return files, error
-
-    def recent_tasks(self):
-        return self.MoverManager.recent_tasks()
-
-    def task(self, name):
-        return self.MoverManager.task(name)
-
-    def ls_input(self):
-        return self.Scanner.ls_input()
-
-    def input_location(self):
-        return self.Scanner.Server, self.Scanner.Location
-
 class ThreadMonitor(PyThread, Logged):
 
     def __init__(self, interval):
