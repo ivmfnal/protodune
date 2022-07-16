@@ -221,6 +221,7 @@ class MoverTask(Task, Logged):
             return self.quarantine(f"scanned file size {self.FileDesc.Size} differs from metadata file_size {file_size}")
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
+        src_data_path = path
         data_src_url = "root://" + self.SourceServer + "/" + path
         dest_root_path = self.Config["destination_root_path"]
         dest_rel_path = self.destination_rel_path(file_scope, self.FileDesc, metadata)
@@ -259,8 +260,10 @@ class MoverTask(Task, Logged):
                 return self.failed("Create dirs failed: %s" % (output,))
 
             copy_cmd = self.Config["copy_command_template"] \
-                .replace("$dst_url", data_dst_url)    \
-                .replace("$src_url", data_src_url)
+                .replace("$dst_url", data_dst_url)  \
+                .replace("$src_url", data_src_url)  \
+                .replace("$dst_data_path", dest_data_path)   \
+                .replace("$src_data_path", src_data_path)
             self.debug("copy command:", copy_cmd)
 
             self.timestamp("transferring data")
