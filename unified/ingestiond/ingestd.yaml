@@ -1,0 +1,92 @@
+meta_suffix: ".json"
+scanner:
+    servers: 
+        - host: eospublic.cern.ch
+          locations:
+              - /eos/experiment/neutplatform/protodune/dune/test/daq
+    filename_patterns:   
+        - "*.hdf5"
+        - "*.root"
+    # meta_suffix:        .json           # optional
+    ls_command_template:    "xrdfs $server ls -l $location"         # $server and $location will be replaced in run time
+    parse_re:               "^(?P<type>[a-z-])\S+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<size>\d+)\s+(?P<path>\S+)$"
+    timeout:                30      # seconds
+    max_scanners:   10
+    
+processor:
+    max_movers: 10                          # default 10
+    queue_capacity: 100                     # stop scanning for input files if the queue is backlogged. default - no limit
+    retry_cooldown: 3600                    # file retry interval
+    keep_interval: 86400                    # interval to keep file processing log in memory
+    
+    class:  declad.Declad
+    config:
+        #
+        # Processor specific config
+        #
+        temp_dir: /tmp
+        download_metadata_pattern: "xrdcp --nopbar --force xroot://$server//$path $dst"
+        # delete:
+        remove_source_pattern: "xrdfs $server rm $path"
+        # rename: 
+        # remove_source_pattern: "xrdfs $server mv $path $path.copied"
+        src_url_pattern:    xroot://eospublic.cern.ch/$path
+        dst_url_pattern:    xroot://eospublic.cern.ch/eos/experiment/neutplatform/protodune/dune/test/dropbox/$relpath
+
+web_gui:
+    port: 8080
+    site_title: Web site title
+    prefix: /declad_demo
+    
+graphite:
+    host: filer-carbon.cern.ch
+    port: 2004
+    namespace: fts.protodune.np04-srv-024-hd5 
+    interval: 10
+    bin: 60
+
+
+
+
+
+[Mover]
+TempDir = /tmp
+DownloadTemplate = xrdcp --nopbar --force xroot://$server//$path $dst
+#UploadTemplate = xrdcp --nopbar --force $src xroot://eospublic.cern.ch///eos/experiment/neutplatform/protodune/rawdata/np04/dropbox/$filename
+DeleteTemplate = xrdfs $server rm $path
+RenameTemplate = xrdfs $server mv $path $path.copied
+LogFile = mover.log
+DatabaseFile = history.sqlite
+RetryInterval = 30
+KeepHistoryInterval = 604000
+KeepLogInterval = 3600
+MaxMovers = 1
+SourcePurge = rename
+ChecksumRequired = yes
+TransferTimeout = 1000
+
+SourceURLPattern = xroot://eospublic.cern.ch/$location/$relpath
+DestinationURLPattern = xroot://eospublic.cern.ch/eos/experiment/neutplatform/protodune/dune/test/dropbox/$relpath
+
+[Scanner]
+Servers = eospublic.cern.ch
+Locations = /eos/experiment/neutplatform/protodune/dune/test/daq
+ScanInterval = 10
+NotifierHTTPPort = 8089
+lsCommandTemplate = xrdfs $server ls -l $location
+FilenamePattern = np04*.hdf5
+#PrescaleFactor = 1.0
+ParseRE = ^(?P<type>[a-z-])\S+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<size>\d+)\s+(?P<path>\S+)$
+[Monitor]
+HTTPPort = 8096
+GUIPrefix = /fts-light
+[Graphite]
+Host = filer-carbon.cern.ch
+Port = 2004
+Namespace = fts.protodune.np04-srv-024-hd5 
+UpdateInterval = 10
+SendStats = yes
+Bin = 60
+[Users]
+np04daq = hold_release1
+np04data = hold_release2

@@ -22,15 +22,51 @@ def runCommand(cmd, timeout=None, debug=None):
         status = 100
     
     return status, out
-
-if __name__ == '__main__':
-
-	command="xrdfs eospublic.cern.ch ls -l /eos/experiment/neutplatform/protodune/scratchdisk/daq/data"
-	#command="ls -l /eos/experiment/neutplatform/protodune/scratchdisk/daq/data"
-
-	import sys
-
-	status, out = runCommand(command, timeout=10)
-	#print out
-	#print status
     
+class MemoryLog(Primitive):
+
+    def __init__(self, capacity=100):
+        Primitive.__init__(self)
+        self.Log = []       # (timestamp, message)
+        self.Capacity = capacity
+
+    @synchronized
+    def log(self, *what):
+        t = time.time()
+        msg = " ".join(str(x) for x in what)
+        self.Log.append((t, msg))
+        self.Log = self.Log[-self.Capacity:]
+        
+    def getLog(self):
+        return self.Log[:]
+
+class FileDescriptor(object):
+
+    def __init__(self, server, location, path, name, size):
+        self.Server = server
+        self.Location = location
+        self.Path = path
+        self.Name = name
+        self.Size = size
+        self.MetaSuffix = self.MetaName = self.MetaPath = self.MetaRelpath = None
+
+        assert path.startswith(location)
+        relpath = path[len(location):]
+        while relpath and relpath[0] == "/":
+            relpath = relpath[1:]
+        self.Relpath = relpath              # path relative to the location root, with leading slash removed
+        
+    def metaDescriptor(self):
+        return FileDescriptor(self.Server, self.Location, self.MetaPath, self.MetaName, 0)
+        
+    def setMetaSuffix(self, suffix):
+        self.MetaSuffix = suffix
+        self.MetaName = self.Name + suffix
+        self.MetaPath = self.Path + suffix
+        self.MetaRelapth = self.Relpath + suffix
+        return self
+       
+    def __str__(self):
+        return "%s:%s" % (self.Server, self.Path)
+        
+    __repr__ = __str__

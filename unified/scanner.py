@@ -7,13 +7,13 @@ class ScannerTask(Task, Logged):
     
     DefaultInterval = 60
     
-    def __init__(self, config, server, location):
+    def __init__(self, config, server, location, meta_suffix):
         Logged.__init__(self, name=f"ScannerTask({server}:{location})")
         Task.__init__(self)
+        self.MetaSuffix = meta_siffix
         self.Server = server
         self.Location = location
         self.Config = config
-        self.MetaSuffix = config.get("meta_suffix", ".json")
         self.ResubmitInterval = config.get("interval", self.DefaultInterval)            # for TaskQueue
         self.Resubmit = True
         
@@ -37,7 +37,7 @@ class ScannerTask(Task, Logged):
 
         self.log("found files (data and metadata):", len(files), "    metadata:", len(meta_names))
 
-        out = [desc for desc in files
+        out = [desc.setMetaSuffix(self.MetaSuffix) for desc in files
             if desc.Name in meta_names
                 and any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns)
         ]
@@ -48,13 +48,15 @@ class ScannerTask(Task, Logged):
 class Scanner(Primitive, Logged):
 
 
-    def __init__(self, receiver, scan_config):
+    def __init__(self, receiver, config):
         PyThread.__init__(self, daemon=True, name="Scanner")
         Logged.__init__(self, f"Scanner")
-        self.Config = scan_config
-        self.MaxScanners = scan_config.get("max_scanners")
+        scanner_config = config["scanner"]
+        self.MetaSuffix = config.get("meta_suffix", ".json")
+        self.Config = scanner_config
+        self.MaxScanners = scanner_config.get("max_scanners")
         self.Receiver = receiver
-        self.Servers = scan_config["servers"]           # [ {"host":"...", locations:[...]}]
+        self.Servers = scanner_config["servers"]           # [ {"host":"...", locations:[...]}]
         self.Stop = False
         self.ScannerQueue = TaskQueue(self.MaxScanners, delegate=self, stagger=1.0)
 
@@ -74,7 +76,7 @@ class Scanner(Primitive, Logged):
             host = server_info["host"]
             locations = server_info["locations"]
             for location in locations:
-                task = ScannerTask(self.Config, server, location)
+                task = ScannerTask(self.Config, server, location, self.MetaSuffix)
                 self.ScannerQueue.add(task)
 
     def taskEnded(self, queue, task, files):

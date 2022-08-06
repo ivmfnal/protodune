@@ -1,32 +1,13 @@
 from pythreader import PyThread, synchronized, Primitive
 from threading import Event
-from tools import runCommand
+from tools import runCommand, FileDescriptor
 import time, fnmatch, re
 from logs import Logged
 
 class ScannerError(Exception):
     pass
 
-class FileDescriptor(object):
-
-    def __init__(self, server, location, path, name, size):
-        self.Server = server
-        self.Location = location
-        self.Path = path
-        self.Name = name
-        self.Size = size
-
-        assert path.startswith(location)
-        relpath = path[len(location):]
-        while relpath and relpath[0] == "/":
-            relpath = relpath[1:]
-        self.Relpath = relpath              # path relative to the location root, with leading slash removed
-       
-    def __str__(self):
-        return "%s:%s" % (self.Server, self.Path)
-        
-    __repr__ = __str__
-
+    
 class XRootDScanner(Logged):
 
     # generic xrootd server

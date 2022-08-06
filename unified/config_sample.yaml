@@ -1,3 +1,4 @@
+meta_suffix: ".json"
 scanner:
     servers: 
         - host: host.domain:port
@@ -59,8 +60,8 @@ web_gui:
     prefix: /declad_demo
     
 graphite:
-        host: filer-carbon.cern.ch
-        port: 2004
-        namespace: fts.protodune.np04-srv-024-hd5 
-        interval: 10
-        bin: 60
+    host: filer-carbon.cern.ch
+    port: 2004
+    namespace: fts.protodune.np04-srv-024-hd5 
+    interval: 10
+    bin: 60

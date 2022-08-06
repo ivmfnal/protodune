@@ -1,10 +1,8 @@
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
-from tools import runCommand
 import json, hashlib, traceback, time, os, pprint
 import rucio_client, metacat_client, samweb_client
 from samweb_client import SAMDeclarationError
 from logs import Logged
-from xrootd_scanner import XRootDScanner
 
 class MoverTask(Task, Logged):
     
@@ -389,7 +387,6 @@ class MoverTask(Task, Logged):
         ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
         if ret:
             return self.failed("Remove source ata failed: %s" % (output,))
-        self.Manager = None
         self.timestamp("complete")
 
     @synchronized
@@ -427,111 +424,15 @@ class MoverTask(Task, Logged):
             self.timestamp("quarantined", self.Error)
         else:
             raise ValueError("Quarantine directory unspecified")
-
-class Declad(PyThread, Logged):
+            
+            
+class Declad(FileProcessor):
     
     def __init__(self, config, history_db):
-        PyThread.__init__(self, name="Declad")
-        Logged.__init__(self, name="Declad")
+        FileProcessor.__init__(self, config, history_db)
         self.Config = config
-        capacity = config.get("queue_capacity")
-        max_movers = config.get("max_movers", 10)
-        stagger = config.get("stagger", 0.5)
-        self.TaskQueue = TaskQueue(max_movers, capacity=capacity, stagger=stagger, delegate=self)
-        self.RetryCooldown = int(config.get("retry_interval", 3600))
-        self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
-        self.HistoryDB = history_db
-        self.RecentTasks = {}	# name -> task
-        self.Stop = False
 
-    def task(self, name):
-        return self.RecentTasks.get(name)
-
-    def stop(self):
-        self.Stop = True
-        self.wakeup()
-        
-    def quarantined(self):
-        qlocation = self.Config.get("quarantine_location")
-        if not qlocation:
-            return [], "Quarantine not configured"
-        scanner = XRootDScanner(self.Config["source_server"], self.Config["scanner"])
-        error = None
-        files = []
-        try:    files = scanner.scan(qlocation)		# returns file descriptors
-        except Exception as e:
-            error = str(e)
-        return files or [], error
-            
-    @synchronized
-    def recent_tasks(self):
-        return sorted(self.RecentTasks.values(), key=lambda t: -t.last_event()[1] or 0)
-        
-    @synchronized
-    def current_tasks(self):
-        waiting, active = self.TaskQueue.tasks()
-        return active + waiting
-
-    def task_history(self):
-        return list(self.HistoryDB.historySince())[::-1]
-
-    @synchronized
-    def add_files(self, files):
-        # files: list of FileDesc's
-        # purge expired retry-after entries and the list of found but delayed files
-        #self.RetryAfter = dict((name, t) for name, t in self.RetryAfter.items() if t > time.time())
-        #self.Delayed = dict((name, t) for name, t in self.Delayed.items() if t > time.time())
-        waiting, active = self.TaskQueue.tasks()
-        in_progress = set(t.name for t in waiting + active)
-        nqueued = 0
-        for filedesc in files:
-            name = filedesc.Name
-            if name not in in_progress:
-                task = self.RecentTasks.get(name)
-                if task is None:
-                    task = MoverTask(self.Config, filedesc)
-                    self.RecentTasks[name] = task
-                task.KeepUntil = time.time() + self.TaskKeepInterval
-                if task.RetryAfter is None or task.RetryAfter < time.time():
-                    task.RetryAfter = time.time() + self.RetryCooldown
-                    self.TaskQueue.addTask(task)
-                    task.timestamp("queued")
-                    nqueued += 1
-        self.log("%d new files queued out of %d found by the scanner" % (nqueued, len(files_dict)))
-
-    @synchronized
-    def taskEnded(self, queue, task, _):
-        if task.Failed:
-            return self.taskFailed(queue, task, None, None, None)
-        else:
-            task.KeepUntil = time.time() + self.TaskKeepInterval
-            task.RetryAfter = time.time() + self.RetryCooldown
-            desc = task.FileDesc
-            self.HistoryDB.file_done(desc.Name, desc.Size, task.Started, task.Ended)
-
-    @synchronized
-    def taskFailed(self, queue, task, exc_type, exc_value, tb):
-        task.KeepUntil = time.time() + self.TaskKeepInterval
-        task.RetryAfter = time.time() + self.RetryCooldown
-        desc = task.FileDesc
-        #self.debug("task failed:", task, "   will retry after", time.ctime(self.RetryAfter[task.name]))
-        if exc_type is not None:
-            error = traceback.format_exception_only(exc_type, exc_value)
-            self.log(f"Mover {desc.Name} exception:", error)
-        else:
-            # the error already logged by the task itself
-            error = task.Error
-        #self.debug("taskFailed: error:", error)
-        if task.Status == "quarantined":
-            self.HistoryDB.file_quarantined(desc.Name, task.Started, error, task.Ended)
-        else:
-            self.HistoryDB.file_failed(desc.Name, desc.Size, task.Started, error, task.Ended)
-
-    def purge_memory(self):
-        self.RecentTasks = {name: task for name, task in self.RecentTasks.items() if task.KeepUntil >= time.time()}
-
-    def run(self):
-        while not self.Stop:
-            self.sleep(60, self.purge_memory)
+    def create_task(self, filedesc):
+        return MoverTask(self.Config, filedesc)
                     
     
