@@ -42,6 +42,7 @@ Using the tool:
                 Dataset namespace, name - MetaCat dataset to add files to
 
                 Options:
+                    -d                          - dry run - do not declare files to MetaCat. Just print the results of the metadata conversion to stdout
                     -n <namespace>              - file namespace, default - run type for first run in the metadata
                     -m <MetaCat URL>            - default - METACAT_SERVER_URL environment variable value      
                     -o (-|<output JSON file>)   - output file to write the resulting information, "-" means stdout

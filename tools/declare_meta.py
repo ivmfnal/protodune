@@ -9,10 +9,10 @@ Declares a file to MetaCat using the JSON file produced by ProtoDUNE DAQ (June 2
 Dataset namespace, name - MetaCat dataset to add files to
 
 Options:
+    -d                          - dry run - do not declare files to MetaCat. Just print the results of the metadata conversion to stdout
     -n <namespace>              - file namespace, default - run type for first run in the metadata
     -m <MetaCat URL>            - default - METACAT_SERVER_URL environment variable value      
     -o (-|<output JSON file>)   - output file to write the resulting information, "-" means stdout
-    -d                          - dry run - do not declare files to MetaCat. Just print the results of the metadata conversion.
     -e <file.json>              - metadata to add/override, optional
     -p <did>[,...]              - parent files specified with their DIDs (<namespace>:<name>) or just <name>s if -n is used
     -P <fid>[,...]              - parent files specified with their MetaCat file ids
