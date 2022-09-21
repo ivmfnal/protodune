@@ -5,7 +5,7 @@ from webpie import WPApp, Response, WPHandler, HTTPServer, WPStaticHandler
 from Version import Version
 from WebService import WSHandler
 
-import time
+import time, math
 
 class Handler(WPHandler):
 
@@ -98,38 +98,135 @@ class Handler(WPHandler):
             for i in range(0, len(text), chunk):
                 yield text[i:i+chunk]
         return Response(app_iter = text_iter(json.dumps(points)), content_type = "text/json")
-        
+
+    def transfer_rates(self, req, rel_path, since_t=None, **args):
+        since_t = self.decode_time(since_t)
+        data = self.App.HistoryDB.getEvents(["done"], since_t)
+        points = [{
+            "tend":     tend,
+            "elapsed":  elapsed,
+            "size":     size,
+            } for _,_,tend,size,elapsed in data
+        ]
+        txt = json.dumps(points)
+        def text_iter(text, chunk=1000000):
+            for i in range(0, len(text), chunk):
+                yield text[i:i+chunk]
+        out = json.dumps({
+            "tmin": since_t,
+            "tmax": time.time(),
+            "data": points
+        })
+        return text_iter(out), "text/json"
+
     def event_counts(self, req, rel_path, event_types=None, since_t=None, bin=None, **args):
-    
+        bin_text = bin
         bin = self.decode_time(bin)   
-        bin = max(int(bin), 1.0)
+        bin = max(int(bin), 1)
         #print "bin=",bin,"  since_t=",since_t
-        events = sorted(event_types.split(","))
         tmin = int(self.decode_time(since_t)/bin)*bin
         tmax = int((time.time()+bin-1)/bin)*bin
-        event_counts = self.App.Manager.getHistoryEventCounts(events, bin, tmin)
         
+        events = event_types.split(',')
         counts = {}
+        event_counts = self.App.HistoryDB.eventCounts(events, bin, tmin)
         for event in events:
             counts[event] = dict((t,0) for t in range(tmin, tmax, bin))
-        
+
         if event_counts:
             for event, t, n in event_counts:
-                tmin = t if tmin is None else min(t, tmin)
-                tmax = t if tmax is None else max(t, tmax)
                 counts[event][t] = n
 
-        def table_to_json(counts, events, tmin, tmax, bin):
-            yield '{ "events": [%s],\n' % (",".join(['"%s"' % (e,) for e in events]))
-            yield '  "rows": [\n'
-            for t in range(tmin, tmax+bin, bin):
-                row = [t] + [counts[e].get(t, 0) for e in events]
-                row = ",".join(["%s" % (x,) for x in row])
-                comma = "," if t < tmax else ""
-                yield "             [%s]%s\n" % (row, comma)
-            yield "     ]\n}"
-        return Response(app_iter = table_to_json(counts, events, tmin, tmax, bin),
-            content_type = "text/json")
+        out = {
+            "events":   events,
+            "tmin":     tmin,
+            "tmax":     tmax,
+            "bin":      bin_text,
+            "rows": [
+                [t] + [counts[e].get(t, 0) for e in events]
+                for t in range(tmin, tmax+bin, bin)
+            ]
+        }
+
+        return json.dumps(out), "text/json"
+
+    
+    def scanner_counts(self, req, rel_path, since_t=None, bin=None, **args):
+        since_t = self.decode_time(since_t)
+        bin = self.decode_time(bin)   
+        bin = max(int(bin), 1)
+        #print "bin=",bin,"  since_t=",since_t
+        tmin = int(since_t/bin)*bin
+        tmax = math.ceil(time.time()/bin)*bin
+
+        nbins = (tmax-tmin)//bin
+        zeros = [0]*nbins
+        
+        servers = set()
+        locations = set()
+        counts = {}
+        points = {}
+        
+        common_prefix = None
+        for record in self.App.HistoryDB.scannerHistorySince(since_t):
+            i = int((record.T-tmin)/bin)
+            if not record.Error:
+                server = record.Server
+                location = record.Location
+                locations.add(location)
+                servers.add(server)
+                key = (server, location)
+                if key not in counts:
+                    counts[key] = zeros[:]
+                    points[key] = zeros[:]
+                counts[key][i] += record.NFiles
+                points[key][i] += 1
+                
+                parts = location.split('/')
+                if common_prefix is None:
+                    common_prefix = parts
+                new_common = []
+                for c, p in zip(common_prefix, parts):
+                    if c == p:
+                        new_common.append(c)
+                common_prefix = new_common
+
+        common_prefix = "/".join(common_prefix) if common_prefix else ""
+        legends = {}
+        for location in locations:
+            legend = location
+            if location == common_prefix:
+                legend = '.../'+location.rsplit('/',1)[-1]
+            elif common_prefix and location.startswith(common_prefix):
+                legend = "..." + location[len(common_prefix):]
+            legends[location] = legend
+
+        timelines = []
+        for key in counts.keys():
+            server, location = key
+            c = counts[key]
+            n = points[key]
+            a = [None]*nbins
+            for i in range(nbins):
+                if n[i] > 0:
+                    a[i] = c[i]/n[i]
+            timelines.append({
+                "server":server,
+                "location":location,
+                "counts":a
+            })            
+        
+        return json.dumps(
+            {
+                "tmin":         tmin,
+                "tmax":         tmax,
+                "bin":          bin,
+                "legends":      legends,
+                "locations":    sorted(list(locations)),
+                "servers":      sorted(list(servers)),
+                "timelines":    timelines
+            }
+        ), "text/json"
         
     def charts(self, req, rel_path, **args):
         return self.render_to_response("charts.html")
@@ -159,7 +256,7 @@ class Handler(WPHandler):
             hist[i] += 1
         out = {
             "range":    range,
-            "data":     [{"rate":i*bin/1000000.0, "count":count} for i, count in enumerate(hist)]
+            "data":     [{"rate":i*bin, "count":count} for i, count in enumerate(hist)]
         }
         return Response(json.dumps(out), content_type = "text/json")
         
@@ -250,13 +347,16 @@ def pretty_size(x):
             
 class App(WPApp):
 
-    def __init__(self, url_prefix, manager, scanmgr):
-        WPApp.__init__(self, Handler, prefix=url_prefix)
+    def __init__(self, config, manager, scanmgr, history_db):
+        self.URLPrefix = config.GUIPrefix
+        WPApp.__init__(self, Handler, prefix=self.URLPrefix)
         self.Manager = manager
         self.ScanMgr = scanmgr
-        self.URLPrefix = url_prefix
+        self.SiteTitle = config.SiteTitle
+        self.HistoryDB = history_db
 
     def init(self):
+        print("App.init: self.URLPrefix:", self.URLPrefix)
         self.initJinjaEnvironment(
             tempdirs = [self.ScriptHome], 
             filters = {
@@ -268,15 +368,16 @@ class App(WPApp):
                 "none2null": none2null
             }, 
             globals = {
+                "GLOBAL_SiteTitle":self.SiteTitle,
                 "GLOBAL_Version":Version,
                 "GLOBAL_URLPrefix":self.URLPrefix
             }
         )
 
-def GUIThread(config, manager, scanmgr):
+def GUIThread(config, manager, scanmgr, history_db):
     port = config.HTTPPort
     prefix = config.GUIPrefix
-    app = App(prefix, manager, scanmgr)
+    app = App(config, manager, scanmgr, history_db)
     return HTTPServer(port, app)
                 
             

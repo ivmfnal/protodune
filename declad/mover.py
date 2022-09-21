@@ -105,7 +105,7 @@ class MoverTask(Task, Logged):
                 type, value = "adler32", ck
         out["checksum"] = [f"{type}:{value}"]
         out.pop("events", None)
-        print("sam_metadata:"), pprint.pprint(out)
+        #print("sam_metadata:"), pprint.pprint(out)
         return out
 
     def file_scope(self, desc, metadata):
@@ -434,7 +434,10 @@ class Manager(PyThread, Logged):
         PyThread.__init__(self, name="Mover")
         Logged.__init__(self, name="Mover")
         self.Config = config
-        self.TaskQueue = TaskQueue(config.get("max_movers", 10), stagger=0.5, delegate=self)
+        capacity = config.get("queue_capacity")
+        max_movers = config.get("max_movers", 10)
+        stagger = config.get("stagger", 0.5)
+        self.TaskQueue = TaskQueue(max_movers, capacity=capacity, stagger=stagger, delegate=self)
         self.RetryCooldown = int(config.get("retry_interval", 3600))
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
         self.HistoryDB = history_db
@@ -510,7 +513,7 @@ class Manager(PyThread, Logged):
         desc = task.FileDesc
         #self.debug("task failed:", task, "   will retry after", time.ctime(self.RetryAfter[task.name]))
         if exc_type is not None:
-            error = traceback.format_exception_only(exc_type, exc_value)
+            error = "".join(traceback.format_exception(exc_type, exc_value, tb))
             self.log(f"Mover {desc.Name} exception:", error)
         else:
             # the error already logged by the task itself
@@ -528,3 +531,4 @@ class Manager(PyThread, Logged):
         while not self.Stop:
             self.sleep(60, self.purge_memory)
                     
+    

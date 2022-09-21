@@ -37,6 +37,11 @@
       text-align: left;
     }
 
+    .data th.combined {
+        border-bottom: 0;
+        text-align: middle;
+    }
+
     .form th {
       text-align: right;
     }
@@ -287,7 +292,7 @@
     
     </style>
     
-    <script src="{{GLOBAL_AppTopPath}}/static/js/request.js"></script>
+    <!-- <script src="{{GLOBAL_URL_Prefix}}/static/js/request.js"></script> -->
     
     {% block html_head %}{% endblock %}
 	
@@ -299,6 +304,7 @@
 <!--  Globals 
     APP_URL: "{{APP_URL}}"
     MY_PATH: "{{MY_PATH}}"
+    GLOBAL_URL_Prefix: "{{GLOBAL_URL_Prefix}}"
     GLOBAL_AppTopPath: "{{GLOBAL_AppTopPath}}"
     GLOBAL_AppDirPath: "{{GLOBAL_AppDirPath}}"
     GLOBAL_ImagesPath: "{{GLOBAL_ImagesPath}}"
@@ -317,6 +323,7 @@
     	    <td><a class=button href="{{GLOBAL_URL_Prefix}}/current">active</a></td>
     	    <td><a class=button href="{{GLOBAL_URL_Prefix}}/recent">recent</a></td>
     	    <td><a class=button href="{{GLOBAL_URL_Prefix}}/history">history</a></td>
+    	    <td><a class=button href="{{GLOBAL_URL_Prefix}}/charts">charts</a></td>
     	    <td><a class=button href="{{GLOBAL_URL_Prefix}}/quarantined">quarantined</a></td>
             <td><a class=button href="{{GLOBAL_URL_Prefix}}/ls_input">input location</a></td>
             <td><a class=button href="{{GLOBAL_URL_Prefix}}/config">configuration</a></td>

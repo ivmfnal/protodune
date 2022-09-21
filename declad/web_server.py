@@ -1,9 +1,13 @@
-from webpie import WPApp, WPHandler
+from webpie import WPApp, WPHandler, WPStaticHandler
 from version import Version
-import pprint
+import pprint, json, time
 
 class Handler(WPHandler):
     
+    def __init__(self, request, app):
+        WPHandler.__init__(self, request, app)
+        self.static = WPStaticHandler(request, app)
+
     def current(self, request, relpath, **args):
         transfers = self.App.current_transfers()
         return self.render_to_response("current.html", transfers=transfers)
@@ -23,6 +27,9 @@ class Handler(WPHandler):
         transfers = self.App.finished_transfers()
         return self.render_to_response("history.html", transfers=transfers)
 
+    def charts(self, req, rel_path, **args):
+        return self.render_to_response("charts.html")
+
     def quarantined(self, request, relpath, **args):
         files, error = self.App.quarantined()
         return self.render_to_response("quarantined.html", files=files, error=error)
@@ -40,7 +47,113 @@ class Handler(WPHandler):
             config=self.App.config(),
             formatted=pprint.pformat(self.App.config())
         )
+
+    #
+    # Data methods
+    #
+    
+    def decode_time(self, t):
+        if t is None:   return t
+
+        time_units = {
+            's':    1,
+            'm':    60,
+            'h':    3600,
+            'd':    3600*24
+        }
+
+        relative = t[0] == '-'
+        if relative:    t = t[1:]
+
+        if t[-1] in "smhd":
+            t, unit = int(t[:-1]), t[-1]
+            t = t*time_units[unit]
+        else:
+            t = int(t)
+        if relative:    t = time.time() - t
+        return t
+   
+    def rate_histogram(self, req, rel_path, since_t=None, **args):
+        since_t = self.decode_time(since_t)
+        data = self.App.HistoryDB.getRecords("done", since_t)
+        rates = [size/elapsed for _,_,_,size,elapsed in data if elapsed > 0.0]
+        range = 1000000.0           # 1 MB/s
+        if rates:
+            rmax = max(rates)
+            while range < rmax:
+                range *= 2
+                if range < rmax:
+                    range *= 5
+        nbins = 40
+        bin = range / nbins
+        hist = [0] * nbins
+        #hist[0] = 1
+        #hist[-1] = 1
+        for r in rates:
+            i = int(r/bin)
+            hist[i] += 1
+        out = {
+            "xmin":     0,
+            "xmax":     range,
+            "bin":      bin,
+            "data":     [{"rate":i*bin, "count":count} for i, count in enumerate(hist)]
+        }
+        return json.dumps(out), "text/json"
+    
+    def transfer_rates(self, req, rel_path, since_t=None, **args):
+        since_t = self.decode_time(since_t)
+        data = self.App.HistoryDB.getRecords("done", since_t)
+        points = [{
+            "tend":     tend,
+            "elapsed":  elapsed,
+            "size":     size,
+            } for _,_,tend,size,elapsed in data
+        ]
+        txt = json.dumps(points)
+        def text_iter(text, chunk=1000000):
+            for i in range(0, len(text), chunk):
+                yield text[i:i+chunk]
+        out = json.dumps({
+            "tmin": since_t,
+            "tmax": time.time(),
+            "data": points
+        })
+        return text_iter(out), "text/json"
         
+    Events = ["done", "failed", "quarantined"]
+        
+    def event_counts(self, req, rel_path, event_types=None, since_t=None, bin=None, **args):
+        bin = self.decode_time(bin)   
+        bin = max(int(bin), 1)
+        #print "bin=",bin,"  since_t=",since_t
+        tmin = int(self.decode_time(since_t)/bin)*bin
+        tmax = int((time.time()+bin-1)/bin)*bin
+        event_counts = self.App.HistoryDB.eventCounts(bin, tmin)
+        
+        counts = {}
+        events = set(self.Events) | set(event for event, _, _ in event_counts)
+        events = sorted(list(events))
+        for event in events:
+            counts[event] = dict((t,0) for t in range(tmin, tmax, bin))
+
+        if event_counts:
+            for event, t, n in event_counts:
+                counts[event][t] = n
+
+        out = {
+            "events":   events,
+            "tmin":     tmin,
+            "tmax":     tmax,
+            "rows": [
+                [t] + [counts[e].get(t, 0) for e in events]
+                for t in range(tmin, tmax+bin, bin)
+            ]
+        }
+
+        return json.dumps(out), "text/json"
+        
+
+
 def as_dt_utc(t):
     from datetime import datetime
     if t is None:   return ""
@@ -83,10 +196,11 @@ def pretty_size(s):
         
 class App(WPApp):
     
-    def __init__(self, config, manager):
+    def __init__(self, config, manager, history_db):
         WPApp.__init__(self, Handler, prefix=config.get("prefix"))
         self.Manager = manager
         self.Config = config
+        self.HistoryDB = history_db
         
     def init(self):
         templdir = self.ScriptHome + "/templates"

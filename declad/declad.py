@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     declad = DeclaD(config, history_db)
     web_config = config.get("web_gui", {})
-    web_server = HTTPServer(web_config.get("port", 8080), App(web_config, declad))
+    web_server = HTTPServer(web_config.get("port", 8080), App(web_config, declad, history_db))
     declad.start()
     web_server.start()
     declad.join()

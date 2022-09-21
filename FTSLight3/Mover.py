@@ -9,7 +9,7 @@ from logs import Logged
 from uid import uid
 
 class FileMoverTask(Task, Logged):
-    def __init__(self, manager, config, fts_client, logger, filedesc):
+    def __init__(self, manager, config, fts_client, memory_log, filedesc):
         Task.__init__(self)
         self.ID = uid()
         self.LogName = f"MoverTask({filedesc.Name})"
@@ -44,7 +44,7 @@ class FileMoverTask(Task, Logged):
         self.Log = []       # [(timestamp, text),]
         self.Status = "starting"
         self.Created = time.time()
-        self.Logger = logger
+        self.MemoryLogger = memory_log
         self.TransferTimeout = config.TransferTimeout
         self.TransferTime = None
         self.TransferStarted = None
@@ -64,17 +64,17 @@ class FileMoverTask(Task, Logged):
             self.failed("File mover exception: %s" % (traceback.format_exc(),))
         self.debug("Mover %s ended" % (self.FileName,))
         
-    def log(self, *what):
-        Logged.log(self, *what)
-        self.Logger.log(self.LogName+":", *what)
+    def log_record(self, *what):
+        self.log(*what)
+        self.MemoryLogger.log(self.LogName+":", *what)
 
     def updateStatus(self, status):
         self.Status = status
         self.Manager.HistoryDB.addFileRecord(self.FileName, status, "")
-        self.log(status)
+        self.log_record(status)
         
     def do_run(self):
-        self.log("started")
+        self.log_record("started")
         self.TransferStarted = time.time()
 
         #
@@ -98,8 +98,8 @@ class FileMoverTask(Task, Logged):
             if "file_size" not in metadata or "checksum" not in metadata:
                 return self.failed("metadata does not include size or checksum")
         except: 
-            self.log("metadata parsing error: %s" % (traceback.format_exc(),))
-            self.log("metadata file contents -------\n%s\n----- end if metadata file contents -----" % (open(meta_tmp, "r").read(),))
+            self.log_record("metadata parsing error: %s" % (traceback.format_exc(),))
+            self.log_record("metadata file contents -------\n%s\n----- end if metadata file contents -----" % (open(meta_tmp, "r").read(),))
             self.failed("Metadata parse error")
             return
         finally:
@@ -119,13 +119,11 @@ class FileMoverTask(Task, Logged):
         if done:
             if request.Failed:
                 msg = f"Data transfer failed: {request.Error}"
-                self.log(msg)
                 self.failed(msg)
                 return
         else:
             # timeout
             msg = "Data transfer timeout"
-            self.log(msg)
             self.failed(msg)
             return
 
@@ -139,13 +137,11 @@ class FileMoverTask(Task, Logged):
         if done:
             if request.Failed:
                 msg = f"Metadata transfer failed: {request.Error}"
-                self.log(msg)
                 self.failed(msg)
                 return
         else:
             # timeout
             msg = "Metadata transfer timeout"
-            self.log(msg)
             self.failed(msg)
             return
 
@@ -194,14 +190,14 @@ class FileMoverTask(Task, Logged):
         self.Reason = reason
         self.Ended = True
         self.Success = False
-        self.log("failed: %s" % (reason,))
+        self.log_record("failed: %s" % (reason,))
         self.Manager.moverFailed(self, reason)
 
     def succeeded(self):
         #self.debug("succeeded(%s)" % (self.FileName,))
         self.Ended = True
         self.Success = True
-        self.log("done")
+        self.log_record("done")
         self.Manager.moverSucceeded(self)
         
 class MyConfigParser(ConfigParser):
@@ -227,6 +223,9 @@ class Configuration(object):
         self.KeepHistoryInterval = int(config.get("Mover", "KeepHistoryInterval", 3600*24))
         self.KeepLogInterval = int(config.get("Mover", "KeepLogInterval", 3600))
         self.MaxMovers = int(config.get("Mover", "MaxMovers", 10))
+        self.QueueCapacity = config.get("Mover", "QueueCapacity", None)
+        if self.QueueCapacity is not None:
+            self.QueueCapacity = int(self.QueueCapacity)
         self.SourcePurge = "none"
         self.DeleteSource = config.get("Mover", "DeleteSource", "no") == "yes"
         if self.DeleteSource:
@@ -287,6 +286,7 @@ class Configuration(object):
         self.GUIPrefix = config.get("Monitor", "GUIPrefix", "/fts-light")
         if not self.GUIPrefix or self.GUIPrefix[0] != "/":
             self.self.GUIPrefix = "/" + self.GUIPrefix
+        self.SiteTitle = config.get("Monitor", "SiteTitle", "Ingestion Daemon")
         
         self.SendToGraphite = config.get("Graphite", "SendStats", "no") == "yes"
         if self.SendToGraphite:
@@ -311,7 +311,7 @@ class Configuration(object):
         return lst
         
         
-class Logger(Primitive):
+class MemoryLog(Primitive):
 
     def __init__(self, time_to_keep):
         Primitive.__init__(self)
@@ -390,8 +390,9 @@ class Manager(PyThread, Logged):
         self.KeepHistoryInterval = self.Config.KeepHistoryInterval
         self.ChecksumRequired = self.Config.ChecksumRequired
         self.MaxMovers = self.Config.MaxMovers
+        self.QueueCapacity = self.Config.QueueCapacity
         self.SourcePurge = self.Config.SourcePurge
-        self.Logger = Logger(self.Config.KeepLogInterval)
+        self.MemoryLogger = MemoryLog(self.Config.KeepLogInterval)
         self.DatabaseFile = self.Config.DatabaseFile
         self.TransferTimeout = self.Config.TransferTimeout
         self.StaggerInterval = self.Config.StaggerInterval
@@ -406,7 +407,7 @@ class Manager(PyThread, Logged):
 
         self.Held = held
 
-        self.MoverQueue = TaskQueue(self.MaxMovers, stagger = self.StaggerInterval)
+        self.MoverQueue = TaskQueue(self.MaxMovers, stagger = self.StaggerInterval, capacity=self.QueueCapacity)
         if self.Held:
             self.MoverQueue.hold()
                 
@@ -415,7 +416,7 @@ class Manager(PyThread, Logged):
             self.GraphiteInterface = GraphiteInterface(self.Config.GraphiteHost, 
                 self.Config.GraphitePort, self.Config.GraphiteNamespace)
                 
-        self.ScanMgr = ScanManager(self, config, held)
+        self.ScanMgr = ScanManager(self, self.HistoryDB, config, held)
         self.debug("Manager created. Held=", held)
         
     def userPassword(self, username):
@@ -430,12 +431,12 @@ class Manager(PyThread, Logged):
     def getConfig(self):
         return self.Config.asList()
     
-    def log(self, *what):
-        Logged.log(self, *what)
-        self.Logger.log(self.LogName + ":", *what)
+    def log_record(self, *what):
+        self.log(*what)
+        self.MemoryLogger.log(self.LogName + ":", *what)
         
     def getLog(self):
-        return self.Logger.getLog()
+        return self.MemoryLogger.getLog()
         
     def getHistory(self, filename=None):
         return self.HistoryDB.historyByFile(filename=filename, window=24*3600)
@@ -445,7 +446,7 @@ class Manager(PyThread, Logged):
         self.Held = True
         self.MoverQueue.hold()
         self.HistoryDB.setConfig("held", "yes")
-        self.log("held")
+        self.log_record("held")
      
     @synchronized
     def release(self):
@@ -453,7 +454,7 @@ class Manager(PyThread, Logged):
         self.MoverQueue.release() 
         self.wakeup()
         self.HistoryDB.setConfig("held", "no")
-        self.log("released")
+        self.log_record("released")
      
     @synchronized
     def file_lists(self):
@@ -508,7 +509,7 @@ class Manager(PyThread, Logged):
     def retryLater(self, desc):
         filename = desc.Name
         t = self.RetryInterval + time.time()
-        self.log("will retry %s after %s" % (filename, time.ctime(t)))
+        self.log_record("will retry %s after %s" % (filename, time.ctime(t)))
         self.RetryQueue[filename] = (t, desc)
         
         
@@ -528,14 +529,33 @@ class Manager(PyThread, Logged):
         
     @synchronized                         
     def addFile(self, desc):
-        mover_task = FileMoverTask(self, self.Config, self.FTS3, self.Logger, desc)
-        #, self.TempDir,
-        #        self.SourcePurge, self.ChecksumRequired, self.TransferTimeout)
-        self.MoverQueue.addTask(mover_task)
-        self.log("file queued: %s" % (desc,))
-        self.debug("Added to queue: %s" % (desc,))
-        self.HistoryDB.fileQueued(desc.Name)
-                
+        if self.newFile(desc.Name):
+            mover_task = FileMoverTask(self, self.Config, self.FTS3, self.MemoryLogger, desc)
+            #, self.TempDir,
+            #        self.SourcePurge, self.ChecksumRequired, self.TransferTimeout)
+            self.MoverQueue.addTask(mover_task)
+            self.log_record("file queued: %s" % (desc,))
+            self.debug("Added to queue: %s" % (desc,))
+            self.HistoryDB.fileQueued(desc.Name)
+            return True
+        else:
+            self.debug(f"File {desc.Name} is not new")
+            return False
+
+    @synchronized                         
+    def addFiles(self, descs):
+        nnew = 0
+        for desc in descs:
+            if self.newFile(desc.Name):
+                mover_task = FileMoverTask(self, self.Config, self.FTS3, self.MemoryLogger, desc)
+                #, self.TempDir,
+                #        self.SourcePurge, self.ChecksumRequired, self.TransferTimeout)
+                self.MoverQueue.addTask(mover_task)
+                self.log_record("file queued: %s" % (desc,))
+                self.HistoryDB.fileQueued(desc.Name)
+                nnew += 1
+        return nnew
+
     @synchronized
     def newFile(self, filename):
         queued, running = self.MoverQueue.tasks()
@@ -559,7 +579,7 @@ class Manager(PyThread, Logged):
                     
     @synchronized
     def retryNow(self, filename):
-        self.log("retry now requested for %s" % (filename,))
+        self.log_record("retry now requested for %s" % (filename,))
         if filename in self.RetryQueue:
             t, desc = self.RetryQueue[filename]
             del self.RetryQueue[filename]
@@ -596,19 +616,18 @@ if __name__ == "__main__":
     config = Configuration(config)
     
     log_file = opts.get("-l", config.LogFile)
-    logs.init_logger(log_file, "-d" in opts)
+    logs.init_logger(log_file, debug_enabled = "-d" in opts)
 
     history_db = historydb.open(config.DatabaseFile)
     
     held = history_db.getConfig().get("held", "no") == "yes"
 
-    
     manager = Manager(config, held, history_db)
     
     #debug("Scanned locations: %s" % (config.ScanServersLocations,))
     
     home = os.path.dirname(__file__)
-    gui = GUIThread(config, manager, manager.ScanMgr)
+    gui = GUIThread(config, manager, manager.ScanMgr, history_db)
     gui.start()
   
     manager.start()
