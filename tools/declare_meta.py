@@ -10,10 +10,12 @@ Declares a file to MetaCat using the JSON file produced by ProtoDUNE DAQ (June 2
 Dataset namespace, name - MetaCat dataset to add files to
 
 Options:
-    -n <namespace>              # file namespace, default - run type for first run in the metadata
-    -m <MetaCat URL>            # default - METACAT_SERVER_URL environment variable value      
-    -o (-|<output JSON file>)   # output file to write the resulting information, "-" means stdout
-    -e <file.json>              # metadata to add/override, optional
+    -n <namespace>              - file namespace, default - run type for first run in the metadata
+    -m <MetaCat URL>            - default - METACAT_SERVER_URL environment variable value      
+    -o (-|<output JSON file>)   - output file to write the resulting information, "-" means stdout
+    -e <file.json>              - metadata to add/override, optional
+    -p <did>[,...]              - parent files specified with their DIDs (<namespace>:<name>) or just <name>s if -n is used
+    -P <fid>[,...]              - parent files specified with their MetaCat file ids
 """
 
 CoreAttributes = {
@@ -71,6 +73,9 @@ if len(args) < 2 or "help" in args:
     print(Usage, file=sys.stderr)
     sys.exit(2)
 
+dataset_did = args[0]
+constant_namespace = opts.get("-n")
+
 metacat_url = opts.get("-m", os.environ.get("METACAT_SERVER_URL"))
 if not metacat_url:
     print("MetaCat server URL must be specified using -m option or METACAT_SERVER_URL environment variable",
@@ -80,8 +85,30 @@ if not metacat_url:
     sys.exit(2)
 client = MetaCatClient(metacat_url)
 
-constant_namespace = opts.get("-n")
-dataset_did = args[0]
+#
+# get parents fids
+#
+parents = None
+if "-p" in opts:
+    parents = []
+    for item in opts["-p"].split(','):
+        if ':' in item:
+            ns, n = item.split(':', 1)
+        elif constant_namespace:
+            ns, n = constant_namespace, item
+        else:
+            print("Invalid parent specification:", item, file=sys.stderr)
+            sys.exit(1)
+        parents.append({"namespace":ns, "name":n})
+    try:    parents = [f["fid"] for f in client.get_files(parents)]
+    except Exception as e:
+        print("Error getting parents file ids:", s, file=sys.stderr)
+        sys.exit(1)
+elif "-P" in opts:
+    parents = opts["-P"].split(',')  # parents given with their fids
+    
+parents = parents or None
+
 
 extra_meta = {} if "-e" not in opts else json.load(open(opts["-e"], "r"))
 assert isinstance(extra_meta, dict), "Extra metadata has to be a dictionary"
@@ -112,6 +139,10 @@ for meta_fn in args[1:]:
             "size":         input_metadata["file_size"],
             "checksums":    {   "adler32":  input_metadata["checksum"]   }
         }
+
+    if parents is not None:
+        file_info["parents"] = parents
+
     files.append(file_info)
 
 try:    out = client.declare_files(dataset_did, files)
