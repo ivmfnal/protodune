@@ -31,24 +31,18 @@ class Handler(WPHandler):
             "to be retried",
             "done"
         ]
+
+        files_in_states = {label:0 for label in states}
         
-        files_in_states = dict((label, []) for label in states)   
-        
-        def add_file_in_state(desc, state):
-            #print state, files_in_states.get(state, "empty")
-            if not state in files_in_states:
-                files_in_states[state] = [desc]
-            else:
-                files_in_states[state].append(desc)
-            files_in_states[state].sort()
+        def add_files_in_state(state, n=1):
+            files_in_states[state] = files_in_states.get(state, 0) + n
+            
         for m in movers:
-            add_file_in_state(m.FileDescriptor, m.Status)
-        for desc in queue:
-            add_file_in_state(desc, "ready")
-        for desc, rt in retry:
-            add_file_in_state(desc, "to be retried")
-        for filename, event, tend, size, elapsed in done:
-            add_file_in_state(filename, "done")
+            add_files_in_state(m.Status)
+        add_files_in_state("ready", len(queue))
+        add_files_in_state("to be retried", len(retry))
+        add_files_in_state("done", len(done))
+
         return self.render_to_response("index.html", 
             states = states, files_in_states=files_in_states, waiting=waiting,
             movers=movers, queue=queue, retry=retry, done=done)

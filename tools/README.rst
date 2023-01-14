@@ -42,16 +42,20 @@ Using the tool:
                 Dataset namespace, name - MetaCat dataset to add files to
 
                 Options:
-                    -n <namespace>              # file namespace, default - run type for first run in the metadata
-                    -m <MetaCat URL>            # default - METACAT_SERVER_URL environment variable value      
-                    -o (-|<output JSON file>)   # output file to write the resulting information, "-" means stdout
-                    -e <file.json>              # metadata to add/override, optional
+                    -d                          - dry run - do not declare files to MetaCat. Just print the results of the metadata conversion to stdout
+                    -n <namespace>              - file namespace, default - run type for first run in the metadata
+                    -m <MetaCat URL>            - default - METACAT_SERVER_URL environment variable value      
+                    -o (-|<output JSON file>)   - output file to write the resulting information, "-" means stdout
+                    -e <file.json>              - metadata to add/override, optional
+                    -p <did>[,...]              - parent files specified with their DIDs (<namespace>:<name>) or just <name>s if -n is used
+                    -P <fid>[,...]              - parent files specified with their MetaCat file ids
 
 The tool declares one or more files to MetaCat and adds all of them to the specified MetaCat dataset, which mush exist already.
 The tool will read the metadata for each file as produced by the DAQ, convert it into format usable by MetaCat and declare the file then
 add all these files to the specified dataset.
 
 The namespace for each file can be specified using ``-n`` option, or the run type for the first run found in the file metadata will be used.
+If specified with ``-n``, the namespace will also be used as the default namespace for parent files.
 
 ``-e`` option can be used to specify additional metadata for the files. If used, the specified JSON file will be parsed and then the metadata from the file
 will be used to add or override metadta read from the input file. The following fields will not be affected:
@@ -103,7 +107,7 @@ For example:
                    "math.primes": [2,3,5,7,11,13]
                 }
                 
-                $ python tools/declare_meta.py -n declad_test -o - -e extra.json declad_test:test meta.json
+                $ python tools/declare_meta.py -n declad_test -o - -e extra.json -P 3456,6543 declad_test:test meta.json
                 [
                     {
                         "fid": "72079136da3e43fa81ed27c99fcd527e",
@@ -152,7 +156,7 @@ For example:
                     },
                     "name": "data_406171931_3.test",
                     "namespace": "declad_test",
-                    "parents": [],
+                    "parents": ["3456","6543"],
                     "size": 3168006718
                 }
                 
