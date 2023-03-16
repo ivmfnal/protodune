@@ -91,7 +91,6 @@ class MoverTask(Task, Logged):
             out[name] = value
         
         out.setdefault("core.event_count", len(out.get("core.events", [])))
-        
         return out
 
     def sam_metadata(self, desc, metadata):
@@ -192,8 +191,9 @@ class MoverTask(Task, Logged):
         
         try:
             metadata = json.load(open(meta_tmp, "r"))
+            metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
         except Exception as e:
-            return self.failed(f"Metadata parse error: {e}")
+            return self.failed(f"Input metadata error: {e}")
         finally:
             os.remove(meta_tmp)
 
@@ -220,8 +220,6 @@ class MoverTask(Task, Logged):
         #
         if file_size != self.FileDesc.Size:
             return self.quarantine(f"scanned file size {self.FileDesc.Size} differs from metadata file_size {file_size}")
-            
-        
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
         src_data_path = path
@@ -229,8 +227,7 @@ class MoverTask(Task, Logged):
         dest_root_path = self.Config["destination_root_path"]
         
         lfn2pfn_alg = self.Config.get("lfn2pfn", "hash")
-        
-        dest_rel_path = lfn2pfn(lfn2pfn_alg, file_scope, self.FileDesc, metadata)
+        dest_rel_path = lfn2pfn(lfn2pfn_alg, file_scope, name, metacat_meta)
         dest_dir_abs_path = dest_root_path + "/" + dest_rel_path.rsplit("/", 1)[0]  
         dest_data_path = dest_root_path + "/" + dest_rel_path
         data_dst_url = "root://" + self.DestServer + "/" + dest_data_path     
@@ -336,7 +333,7 @@ class MoverTask(Task, Logged):
                 else:
                     self.log("already declared to MetaCat")
             else:
-                dataset = self.metacat_dataset(self.FileDesc, metadata)
+                dataset_did = self.metacat_dataset(self.FileDesc, metadata)
                 metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
                 file_info = {
                         "namespace":    file_scope,
@@ -348,7 +345,13 @@ class MoverTask(Task, Logged):
                 if file_id is not None:
                     file_info["fid"] = str(file_id)
                 #print("about to call mclient.declare_files with file_info:", file_info)
-                try:    mclient.declare_files(dataset, [file_info])
+                try:    
+                    file_info = mclient.declare_file(
+                        fid=file_id, namespace=file_scope, name=name, 
+                        metadata=metacat_meta, 
+                        dataset_did=dataset_did,
+                        size=file_size, checksums={ "adler32":  adler32_checksum }
+                    )
                 except Exception as e:
                     return self.failed(f"MetaCat declaration failed: {e}")
                 self.log("file declared to MetaCat")
