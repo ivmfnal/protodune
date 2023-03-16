@@ -5,6 +5,7 @@ import rucio_client, metacat_client, samweb_client
 from samweb_client import SAMDeclarationError
 from logs import Logged
 from xrootd_scanner import XRootDScanner
+from lfn2pfn import lfn2pfn
 
 class MoverTask(Task, Logged):
     
@@ -219,12 +220,17 @@ class MoverTask(Task, Logged):
         #
         if file_size != self.FileDesc.Size:
             return self.quarantine(f"scanned file size {self.FileDesc.Size} differs from metadata file_size {file_size}")
+            
+        
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
         src_data_path = path
         data_src_url = "root://" + self.SourceServer + "/" + path
         dest_root_path = self.Config["destination_root_path"]
-        dest_rel_path = self.destination_rel_path(file_scope, self.FileDesc, metadata)
+        
+        lfn2pfn_alg = self.Config.get("lfn2pfn", "hash")
+        
+        dest_rel_path = lfn2pfn(lfn2pfn_alg, file_scope, self.FileDesc, metadata)
         dest_dir_abs_path = dest_root_path + "/" + dest_rel_path.rsplit("/", 1)[0]  
         dest_data_path = dest_root_path + "/" + dest_rel_path
         data_dst_url = "root://" + self.DestServer + "/" + dest_data_path     
@@ -263,7 +269,8 @@ class MoverTask(Task, Logged):
                 .replace("$dst_url", data_dst_url)  \
                 .replace("$src_url", data_src_url)  \
                 .replace("$dst_data_path", dest_data_path)   \
-                .replace("$src_data_path", src_data_path)
+                .replace("$src_data_path", src_data_path)   \
+                .replace("$dst_rel_path", dest_rel_path)
             self.debug("copy command:", copy_cmd)
 
             self.timestamp("transferring data")
@@ -302,6 +309,19 @@ class MoverTask(Task, Logged):
                 except SAMDeclarationError as e:
                     return self.failed(str(e))
                 self.log("declared to SAM with file id:", file_id)
+
+        #
+        # Add SAM location
+        #
+        sam_location_template = self.Config.get("sam_location_template")
+        if sam_location_template:
+            sam_location = sam_location_template \
+                .replace("$dst_rel_path", dest_rel_path)
+                .replace("$dst_data_path", dest_data_path)
+            try:    sclient.add_location(file_id, sam_location)
+            except SAMDeclarationError as e:
+                return self.failed(str(e))
+                self.log("added SAM location:", sam_location)
 
         #
         # declare to MetaCat
