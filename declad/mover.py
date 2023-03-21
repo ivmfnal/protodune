@@ -367,7 +367,7 @@ class MoverTask(Task, Logged):
                         return self.failed(f"MetaCat declaration failed: {e}")
                     self.log("file declared to MetaCat")
             else:
-                self.debug("would declare to MetaCat: metadata:")
+                self.debug("would declare to MetaCat")
                 self.debug("Name, namespace, fid:", name, file_scope, file_id)
                 self.debug(json.dumps(metacat_meta, indent=2, sort_keys=True))
 
