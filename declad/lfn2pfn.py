@@ -38,7 +38,7 @@ def lfn2pfn(algorithm, scope, name, metadata):
     algorithm = algorithm or "hash"
     if algorithm == "hash":
         return lfn2pfn_hash(scope, name, metadata)
-    elif algorithm = "dune":
+    elif algorithm == "dune":
         return lfn2pfn_dune(scope, name, metadata)
     else:
         raise ValueError("Uknown LFN2PFN algorithm: %s" % (algorithm,))
