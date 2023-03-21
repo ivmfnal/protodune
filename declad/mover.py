@@ -292,24 +292,24 @@ class MoverTask(Task, Logged):
         sclient = samweb_client.client(self.SAMConfig)
         do_declare_to_sam = self.Config.get("declare_to_sam", True)
         if sclient is not None:
-            if do_declare_to_sam:
-                self.timestamp("declaring to SAM")
-                existing_sam_meta = sclient.get_file(name)
-                if existing_sam_meta is not None:
-                    sam_size = existing_sam_meta.get("file_size")
-                    sam_adler32 = dict(ck.split(':', 1) for ck in existing_sam_meta.get("checksum", [])).get("adler32").lower()
-                    if sam_size != file_size or adler32_checksum != sam_adler32:
-                        return self.quarantine("already declared to SAM with different size and/or checksum")
-                    else:
-                        self.log("already delcared to SAM with the same size/checksum")
+            self.timestamp("declaring to SAM")
+            existing_sam_meta = sclient.get_file(name)
+            if existing_sam_meta is not None:
+                sam_size = existing_sam_meta.get("file_size")
+                sam_adler32 = dict(ck.split(':', 1) for ck in existing_sam_meta.get("checksum", [])).get("adler32").lower()
+                if sam_size != file_size or adler32_checksum != sam_adler32:
+                    return self.quarantine("already declared to SAM with different size and/or checksum")
                 else:
-                    sam_metadata = self.sam_metadata(self.FileDesc, metadata)
+                    self.log("already delcared to SAM with the same size/checksum")
+            else:
+                sam_metadata = self.sam_metadata(self.FileDesc, metadata)
+                if do_declare_to_sam:
                     try:    file_id = sclient.declare(sam_metadata)
                     except SAMDeclarationError as e:
                         return self.failed(str(e))
                     self.log("declared to SAM with file id:", file_id)
-            else:
-                self.debug("would declare to SAM:", json.dumps(sam_metadata, indent=4, sort_keys=True))
+                else:
+                    self.debug("would declare to SAM:", json.dumps(sam_metadata, indent=4, sort_keys=True))
 
         #
         # Add SAM location
