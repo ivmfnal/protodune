@@ -2,7 +2,7 @@ from mover import Manager
 from scanner import Scanner
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from config import Config
-from logs import Logged
+from logs import Logged, init as init_logger
 import historydb, pprint, time, threading
 from web_server import App
 from webpie import HTTPServer
@@ -89,6 +89,11 @@ if __name__ == "__main__":
             debug, config.get("debug_out") or config.get("log") or ("-" if debug else None), 
             config.get("error") or config.get("log")
     )
+
+    init_logger(log_out, error_out=config.get("error") or log_out, 
+        debug_out=config.get("debug_out") or log_out or ("-" if debug else None),
+        debug_enabled=debug
+        )
 
     tm = ThreadMonitor(5*60)
     tm.start()
