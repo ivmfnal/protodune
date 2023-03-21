@@ -318,7 +318,7 @@ class MoverTask(Task, Logged):
         do_add_locations = do_declare_to_sam and self.Config.get("add_sam_locations", True)
         if sam_location_template:
             sam_location = sam_location_template \
-                .replace("$dst_rel_path", dest_rel_path)
+                .replace("$dst_rel_path", dest_rel_path) \
                 .replace("$dst_data_path", dest_data_path)
             if do_add_locations:
                 try:    sclient.add_location(file_id, sam_location)
