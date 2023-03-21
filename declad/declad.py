@@ -85,11 +85,6 @@ if __name__ == "__main__":
 
     log_out = opts.get("-l", config.get("log"))
     
-    init_logger(config.get("log"),
-            debug, config.get("debug_out") or config.get("log") or ("-" if debug else None), 
-            config.get("error") or config.get("log")
-    )
-
     init_logger(log_out, error_out=config.get("error") or log_out, 
         debug_out=config.get("debug_out") or log_out or ("-" if debug else None),
         debug_enabled=debug
