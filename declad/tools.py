@@ -11,8 +11,8 @@ def runCommand(cmd, timeout=None, debug=None):
     if debug:
         debug("runCommand: %s" % (cmd,))
     status, out, err = ShellCommand.execute(cmd, timeout=timeout)
-    if debug:
-        debug("%s [%s] [%s]" % (status, out, err))
+    #if debug:
+    #    debug("%s [%s] [%s]" % (status, out, err))
         
     if not out: out = err
     

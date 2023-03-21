@@ -85,7 +85,7 @@ class XRootDScanner(Logged):
         lines = [x.strip() for x in out.split("\n")]
         for l in lines:
             l = l.strip()
-            self.debug("line:", l)
+            #self.debug("line:", l)
             if l:
                 m = self.ParseRE.match(l)
                 if m:
