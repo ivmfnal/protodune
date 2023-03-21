@@ -22,7 +22,7 @@ def lfn2pfn_dune(namespace, filename, metadata):
 
     pfn = "/".join([str(x) for x in 
         [run_type, data_tier, year, file_type, data_stream, data_campaign, hash1, hash2, hash3, hash4, filename]
-    ]
+    ])
     return pfn
 
 def lfn2pfn_hash(scope, name, metadata):
