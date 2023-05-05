@@ -22,12 +22,6 @@ class RunsDBinConDB(MetaCatFilter):
     """
 
     def __init__ (self, config):
-        """
-        At some point, add a config parameter so as not to hard code them
-        param config: str
-            file with the configuration parameters
-        self.Config = config
-        """
         self.Config = config
         show_config = config.copy()
         show_config["connection"] = self.hide(show_config["connection"], "user", "password")
