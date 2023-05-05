@@ -35,7 +35,7 @@ class RunsDBinConDB(MetaCatFilter):
         # get column names
         #
         
-        db = ConDB(self.Connection)
+        db = ConDB(self.ConnPool)
         folder = db.openFolder(self.FolderName)
         folder_columns = folder.data_column_types()
         self.Columns = list(zip(*folder_columns))[0]
@@ -48,7 +48,7 @@ class RunsDBinConDB(MetaCatFilter):
     def filter(self, inputs, **ignore):
         
         # Conect to db via condb python API
-        db = ConDB(self.Connection)
+        db = ConDB(self.ConnPool)
         folder = db.openFolder(self.FolderName)
 
         # Get files from metacat input
