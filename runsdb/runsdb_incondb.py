@@ -44,37 +44,46 @@ class RunsDBinConDB(MetaCatFilter):
         for f in fields:
              conn = re.sub(f"\s+{f}\s*=\s*\S+", f" {f}=(hidden)", conn, re.I)
         return conn
+        
+    def file_run_numer(self, metadata):
+        file_runs = f.Metadata.get("core.runs")
+        if file_runs:
+            return file_runs[0]
+        else:
+            return None
 
     def filter(self, inputs, **ignore):
         
         # Conect to db via condb python API
         db = ConDB(self.ConnPool)
         folder = db.openFolder(self.FolderName)
+        
+        data_by_run = {}        # cache data by run number across chunks
 
         # Get files from metacat input
         file_set = inputs[0]
         for chunk in file_set.chunked():
-            run_nums = set()
+            need_run_nums = set()
 
             for f in chunk:
-                file_runs = f.Metadata.get("core.runs")
-                if file_runs:
-                    runnum = file_runs[0]
-                    run_nums.add(runnum)
+                runnum = self.file_run_numer(f.Metadata)
+                if runnum is not None and runnum not in data_by_run:
+                    need_run_nums.add(runnum)
 
-            if run_nums:
+            if need_run_nums:
                 # Get run_hist data
-                data_runhist = folder.getData(0, channel_range=(min(run_nums), max(run_nums)+1))
-                data_by_run = {row[0]: row[4:] for row in data_runhist}     # skip channel, tv, data_type and tr
+                data_runhist = folder.getData(0, channel_range=(min(need_run_nums), max(need_run_nums)+1))
+                for row in data_runhist:
+                    runnum, data = row[0], row[4:]
+                    if runnum not in data_by_run:
+                        data_by_run[runnum] = data
         
-                # Insert run hist data to Metacat
-                for f in chunk:
-                    file_runs = f.Metadata.get("core.runs")
-                    if file_runs:
-                        runnum = file_runs[0]
-                        if runnum in data_by_run:
-                            for col, value in zip(self.Columns, data_by_run[runnum]):
-                                f.Metadata[f"{self.MetaPrefix}.{col}"] = value
+            # Insert run hist data to Metacat
+            for f in chunk:
+                runnum = self.file_run_numer(f.Metadata)
+                if runnum is not None and runnum in data_by_run:
+                    for col, value in zip(self.Columns, data_by_run[runnum]):
+                        f.Metadata[f"{self.MetaPrefix}.{col}"] = value
 
             yield from chunk
  
