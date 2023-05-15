@@ -38,15 +38,15 @@ class RunsDBinConDB(MetaCatFilter):
         db = ConDB(self.ConnPool)
         folder = db.openFolder(self.FolderName)
         folder_columns = folder.data_column_types()
-        self.Columns = list(zip(*folder_columns))[0]
+        self.ColumnTypes = folder.data_column_types()
 
     def hide(self, conn, *fields):
         for f in fields:
              conn = re.sub(f"\s+{f}\s*=\s*\S+", f" {f}=(hidden)", conn, re.I)
         return conn
         
-    def file_run_numer(self, metadata):
-        file_runs = f.Metadata.get("core.runs")
+    def file_run_number(self, metadata):
+        file_runs = metadata.get("core.runs")
         if file_runs:
             return file_runs[0]
         else:
@@ -66,7 +66,7 @@ class RunsDBinConDB(MetaCatFilter):
             need_run_nums = set()
 
             for f in chunk:
-                runnum = self.file_run_numer(f.Metadata)
+                runnum = self.file_run_number(f.Metadata)
                 if runnum is not None and runnum not in data_by_run:
                     need_run_nums.add(runnum)
 
@@ -80,15 +80,17 @@ class RunsDBinConDB(MetaCatFilter):
         
             # Insert run hist data to Metacat
             for f in chunk:
-                runnum = self.file_run_numer(f.Metadata)
+                runnum = self.file_run_number(f.Metadata)
                 if runnum is not None and runnum in data_by_run:
-                    for col, value in zip(self.Columns, data_by_run[runnum]):
+                    for (col, typ), value in zip(self.ColumnTypes, data_by_run[runnum]):
+                        if typ.startswith("timestamp") and value is not None:
+                            value = value.timestamp()
                         f.Metadata[f"{self.MetaPrefix}.{col}"] = value
 
             yield from chunk
  
 
-def create_filters():
+def create_filters(config):
     return {
-        "dune_runshistdb": RunsDBinConDB()
+        "dune_runshistdb": RunsDBinConDB(config)
     }
