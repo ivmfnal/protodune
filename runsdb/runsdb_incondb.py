@@ -1,7 +1,7 @@
-from metacat.filters import MetaCatFilter
-from wsdbtools import ConnectionPool
 import re
+from wsdbtools import ConnectionPool
 from condb import ConDB
+from metacat.filters import MetaCatFilter
 
 class RunsDBinConDB(MetaCatFilter):
     """
@@ -53,7 +53,7 @@ class RunsDBinConDB(MetaCatFilter):
             return None
 
     def filter(self, inputs, **ignore):
-        
+
         # Conect to db via condb python API
         db = ConDB(self.ConnPool)
         folder = db.openFolder(self.FolderName)
