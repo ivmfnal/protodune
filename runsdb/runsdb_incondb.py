@@ -17,7 +17,7 @@ class RunsDBinConDB(MetaCatFilter):
         for the run in the runs history database, then the file metadata is unchanged and will not contain the runs history fields.
 
     Configuration:
-        connectio: Runs history Posrgres connection string "host=... port=... user=... dbname=..."
+        connection: Runs history Posrgres connection string "host=... port=... user=... dbname=..."
         folder: ConDB folder name as "name" or "namespace.name"
         meta_prefix: Metadata category prefix to use when appending the Runs history data to the MetaCat file metadata. Default "runs_history"
     """
