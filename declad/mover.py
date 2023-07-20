@@ -22,6 +22,7 @@ class MoverTask(Task, Logged):
         self.SourceServer = config["source_server"]
         self.DestServer = config.get("destination_server") or self.SourceServer
         self.TransferTimeout = config.get("transfer_timeout", 120)
+        self.LowecaseMetadataNames = config.get("lowercase_meta_names", False)
         self.Error = None
         self.Failed = False
         self.Status = "created"
@@ -87,6 +88,8 @@ class MoverTask(Task, Logged):
                 if name not in self.CoreAttributes:
                     raise ValueError("Unknown core metadata parameter: %s = %s for file %s", (name, value, desc.Name))
                 name = self.CoreAttributes[name]
+            if self.LowecaseMetadataNames:
+                name = name.lower()
             out[name] = value
         
         out.setdefault("core.event_count", len(out.get("core.events", [])))
@@ -138,12 +141,10 @@ class MoverTask(Task, Logged):
 
         This takes the MD5 of the LFN and uses the first four characters as a subdirectory
         name.
-
+        
+        :function str: function to apply. If None - standard Rucio hash function for deterministic RSEs
         :param scope: Scope of the LFN.
-        :param name: File name of the LFN.
-        :param rse: RSE for PFN (ignored)
-        :param rse_attrs: RSE attributes for PFN (ignored)
-        :param protocol_attrs: RSE protocol attributes for PFN (ignored)
+        :param desc: File descriptor from the xrootd scanner, includes file name
         :returns: Path for use in the PFN generation.
         """
         name = desc.Name
@@ -196,6 +197,8 @@ class MoverTask(Task, Logged):
         finally:
             os.remove(meta_tmp)
 
+        metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
+
         self.debug("metadata downloaded:", metadata)
         
         if any (x not in metadata for x in self.RequiredMetadata):
@@ -222,8 +225,19 @@ class MoverTask(Task, Logged):
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
         data_src_url = "root://" + self.SourceServer + "/" + path
+        rel_path_function = self.Config.get("rel_path_function")
         dest_root_path = self.Config["destination_root_path"]
-        dest_rel_path = self.destination_rel_path(file_scope, self.FileDesc, metadata)
+        if rel_path_function == "hash":
+            dest_rel_path = self.destination_rel_path(file_scope, self.FileDesc, metacat_meta)
+        elif rel_path_function == "template":
+            meta_dict = metacat_meta.copy()
+            meta_dict.update(dict(
+                scope = file_scope,
+                name = self.FileDesc.Name
+            ))
+            dest_rel_path = self.Config["rel_path_pattern"] % meta_dict
+        else:
+            raise ValueError(f"Unknown relative path function {rel_path_function}. Accepted: hash or template")
         dest_dir_abs_path = dest_root_path + "/" + dest_rel_path.rsplit("/", 1)[0]  
         dest_data_path = dest_root_path + "/" + dest_rel_path
         data_dst_url = "root://" + self.DestServer + "/" + dest_data_path     

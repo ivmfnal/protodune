@@ -7,10 +7,10 @@
 <h2>Summary</h2>
 
 <table class="states">
-        {% for state in states %}
+        {% for state, count in files_in_states.items() %}
             <tr>
                 <th>{{state}}</th>
-                <td>{{files_in_states[state]|count}}</td>
+                <td>{{count}}</td>
             </tr>
         {% endfor %}
 </table>
