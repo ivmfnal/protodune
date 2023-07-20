@@ -87,28 +87,14 @@ if "-d" not in opts or "-p" in opts:
     client = MetaCatClient(metacat_url)
 
 #
-# get parents fids
+# get parents specs
 #
 parents = None
-if "-p" in opts:
-    parents = []
-    for item in opts["-p"].split(','):
-        if ':' in item:
-            ns, n = item.split(':', 1)
-        elif constant_namespace:
-            ns, n = constant_namespace, item
-        else:
-            print("Invalid parent specification:", item, file=sys.stderr)
-            sys.exit(1)
-        parents.append({"namespace":ns, "name":n})
-    try:
-        parents = [f["fid"] for f in client.get_files(parents)]
-    except Exception as e:
-        print("Error getting parents file ids:", s, file=sys.stderr)
-        sys.exit(1)
-elif "-P" in opts:
-    parents = opts["-P"].split(',')  # parents given with their fids
-    
+if "-P" in opts:
+    parents = [{"fid":fid} for fid in opts["-P"].split(',')]
+elif "-p" in opts:
+    parents = [{"did":did} for did in opts["-p"].split(',')]
+
 parents = parents or None
 
 extra_meta = {} if "-e" not in opts else json.load(open(opts["-e"], "r"))

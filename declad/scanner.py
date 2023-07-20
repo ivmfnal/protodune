@@ -8,7 +8,7 @@ from xrootd_scanner import XRootDScanner
 class Scanner(PyThread, Logged):
 
     MetaSuffix = ".json"
-    DefaultInterval = 30
+    DefaultInterval = 300
 
     def __init__(self, receiver, config, interval=None):
         PyThread.__init__(self, daemon=True, name="Scanner")

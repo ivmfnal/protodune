@@ -5,6 +5,7 @@ import rucio_client, metacat_client, samweb_client
 from samweb_client import SAMDeclarationError
 from logs import Logged
 from xrootd_scanner import XRootDScanner
+from lfn2pfn import lfn2pfn
 
 class MoverTask(Task, Logged):
     
@@ -93,7 +94,6 @@ class MoverTask(Task, Logged):
             out[name] = value
         
         out.setdefault("core.event_count", len(out.get("core.events", [])))
-        
         return out
 
     def sam_metadata(self, desc, metadata):
@@ -192,8 +192,9 @@ class MoverTask(Task, Logged):
         
         try:
             metadata = json.load(open(meta_tmp, "r"))
+            metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
         except Exception as e:
-            return self.failed(f"Metadata parse error: {e}")
+            return self.failed(f"Input metadata error: {e}")
         finally:
             os.remove(meta_tmp)
 
@@ -224,6 +225,7 @@ class MoverTask(Task, Logged):
             return self.quarantine(f"scanned file size {self.FileDesc.Size} differs from metadata file_size {file_size}")
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
+        src_data_path = path
         data_src_url = "root://" + self.SourceServer + "/" + path
         rel_path_function = self.Config.get("rel_path_function")
         dest_root_path = self.Config["destination_root_path"]
@@ -253,8 +255,8 @@ class MoverTask(Task, Logged):
         if dest_size is not None:
             self.debug(f"data file exists at the destination {dest_data_path}, size: {dest_size}")
 
+        do_move_files = self.Config.get("move_files", True)
         if dest_size != file_size:
-
             if dest_size is not None:
                 self.log(f"destination file exists at {dest_data_path} but has incorrect size {dest_size} vs. {file_size}")
 
@@ -273,8 +275,11 @@ class MoverTask(Task, Logged):
                 return self.failed("Create dirs failed: %s" % (output,))
 
             copy_cmd = self.Config["copy_command_template"] \
-                .replace("$dst_url", data_dst_url)    \
-                .replace("$src_url", data_src_url)
+                .replace("$dst_url", data_dst_url)  \
+                .replace("$src_url", data_src_url)  \
+                .replace("$dst_data_path", dest_data_path)   \
+                .replace("$src_data_path", src_data_path)   \
+                .replace("$dst_rel_path", dest_rel_path)
             self.debug("copy command:", copy_cmd)
 
             self.timestamp("transferring data")
@@ -297,6 +302,7 @@ class MoverTask(Task, Logged):
         file_id = None
         
         sclient = samweb_client.client(self.SAMConfig)
+        do_declare_to_sam = self.Config.get("declare_to_sam", True)
         if sclient is not None:
             self.timestamp("declaring to SAM")
             existing_sam_meta = sclient.get_file(name)
@@ -309,100 +315,146 @@ class MoverTask(Task, Logged):
                     self.log("already delcared to SAM with the same size/checksum")
             else:
                 sam_metadata = self.sam_metadata(self.FileDesc, metadata)
-                try:    file_id = sclient.declare(sam_metadata)
+                if do_declare_to_sam:
+                    try:    file_id = sclient.declare(sam_metadata)
+                    except SAMDeclarationError as e:
+                        return self.failed(str(e))
+                    self.log("declared to SAM with file id:", file_id)
+                else:
+                    self.debug("would declare to SAM:", json.dumps(sam_metadata, indent=4, sort_keys=True))
+
+        #
+        # Add SAM location
+        #
+        sam_location_template = self.Config.get("sam_location_template")
+        do_add_locations = do_declare_to_sam and self.Config.get("add_sam_locations", True)
+        if sam_location_template:
+            sam_location = sam_location_template \
+                .replace("$dst_rel_path", dest_rel_path) \
+                .replace("$dst_data_path", dest_data_path)
+            if do_add_locations:
+                try:    sclient.add_location(file_id, sam_location)
                 except SAMDeclarationError as e:
                     return self.failed(str(e))
-                self.log("declared to SAM with file id:", file_id)
+                    self.log("added SAM location:", sam_location)
+            else:
+                # debug
+                self.debug("would add SAM location:", sam_location)
 
         #
         # declare to MetaCat
         #
         mclient = metacat_client.client(self.Config)
+        do_declare_to_metacat = self.Config.get("declare_to_metacat", True)
         if mclient is not None:
-            self.timestamp("declaring to MetaCat")
-            existing_metacat = mclient.get_file(did=did)
-            if existing_metacat:
-                if existing_metacat["size"] != file_size or existing_metacat.get("checksums", {}).get("adler32") != adler32_checksum:
-                    self.quarantine("already declared to MetaCat with different size and/or checksum")
+            if do_declare_to_metacat:
+                self.timestamp("declaring to MetaCat")
+                existing_metacat = mclient.get_file(did=did)
+                if existing_metacat:
+                    if existing_metacat["size"] != file_size or existing_metacat.get("checksums", {}).get("adler32") != adler32_checksum:
+                        self.quarantine("already declared to MetaCat with different size and/or checksum")
+                    else:
+                        self.log("already declared to MetaCat")
                 else:
-                    self.log("already declared to MetaCat")
+                    dataset_did = self.metacat_dataset(self.FileDesc, metadata)
+                    metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
+                    file_info = {
+                            "namespace":    file_scope,
+                            "name":         name,
+                            "metadata":     metacat_meta,
+                            "size":         file_size,
+                            "checksums":    {   "adler32":  adler32_checksum   },
+                        }
+                    if file_id is not None:
+                        file_info["fid"] = str(file_id)
+                    #print("about to call mclient.declare_files with file_info:", file_info)
+                    try:    
+                        file_info = mclient.declare_file(
+                            fid=file_id, namespace=file_scope, name=name, 
+                            metadata=metacat_meta, 
+                            dataset_did=dataset_did,
+                            size=file_size, checksums={ "adler32":  adler32_checksum }
+                        )
+                    except Exception as e:
+                        return self.failed(f"MetaCat declaration failed: {e}")
+                    self.log("file declared to MetaCat")
             else:
-                dataset = self.metacat_dataset(self.FileDesc, metadata)
-                metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
-                file_info = {
-                        "namespace":    file_scope,
-                        "name":         name,
-                        "metadata":     metacat_meta,
-                        "size":         file_size,
-                        "checksums":    {   "adler32":  adler32_checksum   },
-                    }
-                if file_id is not None:
-                    file_info["fid"] = str(file_id)
-                #print("about to call mclient.declare_files with file_info:", file_info)
-                try:    mclient.declare_files(dataset, [file_info])
-                except Exception as e:
-                    return self.failed(f"MetaCat declaration failed: {e}")
-                self.log("file declared to MetaCat")
+                self.debug("would declare to MetaCat")
+                self.debug("Name, namespace, fid:", name, file_scope, file_id)
+                self.debug(json.dumps(metacat_meta, indent=2, sort_keys=True))
 
         #
         # declare to Rucio
         #
         rclient = rucio_client.client(self.RucioConfig)
+        do_declare_to_rucio = self.Config.get("declare_to_rucio", True)
         if rclient is not None:
-            from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
-            #print(rclient.whoami())
+            if do_declare_to_rucio:
+                from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
+                #print(rclient.whoami())
 
-            self.timestamp("declaring to Rucio")
+                self.timestamp("declaring to Rucio")
 
-            # create dataset if does not exist
-            dataset_scope, dataset_name = self.undid(self.rucio_dataset_did(self.FileDesc, metadata))
-            try:    rclient.add_did(dataset_scope, dataset_name, "DATASET")
-            except DataIdentifierAlreadyExists:
-                pass
-            except Exception as e:
-                return self.quarantine(f"Error in creating Rucio dataset {dataset_scope}:{dataset_name}: {e}")
-                
-            else:
-                self.log(f"Rucio dataset {dataset_scope}:{dataset_name} created")
-
-            for target_rse in self.RucioConfig["target_rses"]:
-                try:
-                    rclient.add_replication_rule([{"scope":dataset_scope, "name":dataset_name}], 1, target_rse)
-                except DuplicateRule:
+                # create dataset if does not exist
+                dataset_scope, dataset_name = self.undid(self.rucio_dataset_did(self.FileDesc, metadata))
+                try:    rclient.add_did(dataset_scope, dataset_name, "DATASET")
+                except DataIdentifierAlreadyExists:
                     pass
                 except Exception as e:
-                    return self.quarantine(f"Error in creating Rucio replication rule -> {target_rse}: {e}")
+                    return self.quarantine(f"Error in creating Rucio dataset {dataset_scope}:{dataset_name}: {e}")
+                
                 else:
-                    self.log(f"replication rule -> {target_rse} created")
-            
-            # declare file replica to Rucio
-            drop_rse = self.RucioConfig["drop_rse"]
-            rclient.add_replica(drop_rse, file_scope, name, file_size, adler32_checksum)
-            self.log(f"File replica declared in drop rse {drop_rse}")
+                    self.log(f"Rucio dataset {dataset_scope}:{dataset_name} created")
 
-            # add the file to the dataset
-            try:
-                rclient.attach_dids(dataset_scope, dataset_name, [{"scope":file_scope, "name":name}])
-            except FileAlreadyExists:
-                self.log("File was already attached to the Rucio dataset")
+                for target_rse in self.RucioConfig["target_rses"]:
+                    try:
+                        rclient.add_replication_rule([{"scope":dataset_scope, "name":dataset_name}], 1, target_rse)
+                    except DuplicateRule:
+                        pass
+                    except Exception as e:
+                        return self.quarantine(f"Error in creating Rucio replication rule -> {target_rse}: {e}")
+                    else:
+                        self.log(f"replication rule -> {target_rse} created")
+            
+                # declare file replica to Rucio
+                drop_rse = self.RucioConfig["drop_rse"]
+                rclient.add_replica(drop_rse, file_scope, name, file_size, adler32_checksum)
+                self.log(f"File replica declared in drop rse {drop_rse}")
+
+                # add the file to the dataset
+                try:
+                    rclient.attach_dids(dataset_scope, dataset_name, [{"scope":file_scope, "name":name}])
+                except FileAlreadyExists:
+                    self.log("File was already attached to the Rucio dataset")
+                else:
+                    self.log("File attached to the Rucio dataset")
             else:
-                self.log("File attached to the Rucio dataset")
+                self.debug("would declare to Rucio")
 
         self.timestamp("removing sources")
+
+        do_remove_sources = self.Config.get("remove_sources", True)
 
         rmcommand = self.Config["delete_command_template"]	\
             .replace("$server", self.SourceServer)	\
             .replace("$path", meta_path)
-        ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
-        if ret:
-            return self.failed("Remove source metadata failed: %s" % (output,))
+        if do_remove_sources:
+            ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
+            if ret:
+                return self.failed("Remove source metadata failed: %s" % (output,))
+        else:
+            self.debug("would remove source metadata:", rmcommand)
 
         rmcommand = self.Config["delete_command_template"]	\
             .replace("$server", self.SourceServer)	\
             .replace("$path", path)
-        ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
-        if ret:
-            return self.failed("Remove source ata failed: %s" % (output,))
+        if do_remove_sources:
+            ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
+            if ret:
+                return self.failed("Remove source ata failed: %s" % (output,))
+        else:
+            self.debug("would remove source data file:", rmcommand)
+
         self.Manager = None
         self.timestamp("complete")
 
@@ -411,7 +463,7 @@ class MoverTask(Task, Logged):
         self.EventDict[event] = self.LastUpdate = t =  time.time()
         self.EventLog.append((event, t, info))
         self.log(event)
-        self.debug(event, "info:", info)
+        #self.debug(event, "info:", info)
         self.Status = event
 
     @synchronized

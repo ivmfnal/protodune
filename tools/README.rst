@@ -107,7 +107,7 @@ For example:
                    "math.primes": [2,3,5,7,11,13]
                 }
                 
-                $ python tools/declare_meta.py -n declad_test -o - -e extra.json declad_test:test meta.json
+                $ python tools/declare_meta.py -n declad_test -o - -e extra.json -P 3456,6543 declad_test:test meta.json
                 [
                     {
                         "fid": "72079136da3e43fa81ed27c99fcd527e",
@@ -156,7 +156,7 @@ For example:
                     },
                     "name": "data_406171931_3.test",
                     "namespace": "declad_test",
-                    "parents": [],
+                    "parents": ["3456","6543"],
                     "size": 3168006718
                 }
                 

@@ -33,17 +33,49 @@ class SAMWebClient(Logged):
         self.Cert = cert
         self.Key = key
 
-    def declare(self, metadata):
+    def declare(self, metadata, location=None):
         data = json.dumps(metadata, indent=1, sort_keys=True)
         response = requests.post(self.URL + "/files", data=data,
                         headers={"Content-Type":"application/json"},
 			cert=(self.Cert, self.Key)
         )
-        if response.status_code == 400:
+        if response.status_code // 100 == 4:
             raise SAMDeclarationError("SAM declaration error", response.text)
         response.raise_for_status()
-        return response.text.strip()        # file id
+        file_id = response.text.strip()
         
+        if location:
+            response = requests.post(f"{self.URL}/{file_id}/locations", 
+                data={
+                    "add" : location
+                },
+                headers={
+                    "Content-Type" : "application/json",
+                    "SAM-Role": "*"
+                },
+                cert=(self.Cert, self.Key)
+            )
+            if response.status_code // 100 == 4:
+                raise SAMDeclarationError("SAM error adding file location", response.text)
+            response.raise_for_status()
+
+        return file_id
+
+    def add_location(self, file_id, location):
+        response = requests.post(f"{self.URL}/{file_id}/locations", 
+            data={
+                "add" : location
+            },
+            headers={
+                "Content-Type" : "application/json",
+                "SAM-Role": "*"
+            },
+            cert=(self.Cert, self.Key)
+        )
+        if response.status_code // 100 == 4:
+            raise SAMDeclarationError("SAM error adding file location", response.text)
+        response.raise_for_status()
+
     def get_file(self, name):
         url = self.URL + "/files/name/" + quote(name) + "/metadata?format=json"
         response = requests.get(url, headers={"Accept":"application/json"})
