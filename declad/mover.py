@@ -198,6 +198,9 @@ class MoverTask(Task, Logged):
         finally:
             os.remove(meta_tmp)
 
+        # strip whitespace from around the attribute names
+        metadata = {name.strip():value for name, value in metadata.items()}
+
         metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
 
         self.debug("metadata downloaded:", metadata)
