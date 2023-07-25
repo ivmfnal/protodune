@@ -7,7 +7,7 @@ TAR_DIR = /tmp/$(USER)
 TAR_FILE = $(TAR_DIR)/$(PRODUCT)_$(VERSION).tar
 
 
-FILES = config.py logs.py mover.py samweb_client.py tools.py web_server.py lfn2pfn.py \
+FILES = config.py mover.py samweb_client.py tools.py web_server.py lfn2pfn.py \
 	declad.py historydb.py metacat_client.py rucio_client.py scanner.py xrootd_scanner.py graphite_interface.py
 
 
@@ -29,6 +29,7 @@ build: $(BUILD_DIR) $(TEMPLATES_DIR)
 	find . -type f -name \*.pyc -exec rm -f {} \;
 	echo 'Version="$(VERSION)"' > $(BUILD_DIR)/version.py
 	cp $(FILES) $(BUILD_DIR)
+	cp -R logs $(BUILD_DIR)
 	cp templates/*.html $(TEMPLATES_DIR)
 
 clean:
