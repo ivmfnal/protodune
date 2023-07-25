@@ -16,6 +16,7 @@ class Scanner(PyThread, Logged):
         self.Interval = interval or self.DefaultInterval
         self.Receiver = receiver
         scan_config = config["scanner"]
+        self.Recursive = scan_config.get("recursive", False)
         self.Server, self.Location = scan_config["server"], scan_config["location"]
         self.XScanner = XRootDScanner(self.Server, scan_config)
         patterns = scan_config.get("filename_patterns") or scan_config.get("filename_pattern")
@@ -41,7 +42,7 @@ class Scanner(PyThread, Logged):
         while not self.Stop:
             data_files = {}         # name -> desc
             metadata_files = set()  # data file names correspoinding to the metadata names
-            try: files = self.XScanner.scan(self.Location)
+            try: files = self.XScanner.scan(self.Location, self.Recursive)
             except:
                 self.error("xrootd scanner error:", "".join(traceback.format_exc()))
             self.debug("scanner returned %d file descriptors" % (len(files,)))
