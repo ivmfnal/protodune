@@ -95,7 +95,7 @@ class MoverTask(Task, Logged):
         for name, value in metadata.items():
             if '.' not in name:
                 if name not in self.CoreAttributes:
-                    raise ValueError("Unknown core metadata parameter: %s = %s for file %s", (name, value, desc.Name))
+                    raise ValueError("Unknown core metadata parameter: %s = %s for file %s" % (name, value, desc.Name))
                 name = self.CoreAttributes[name]
             if self.LowecaseMetadataNames:
                 name = name.lower()
