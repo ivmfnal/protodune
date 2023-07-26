@@ -6,8 +6,7 @@ from samweb_client import SAMDeclarationError
 from logs import Logged
 from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
-from datetime import datetime
-import datetime.timezone.utc as UTC
+from datetime import datetime, timezone
 
 class MoverTask(Task, Logged):
     
@@ -98,9 +97,12 @@ class MoverTask(Task, Logged):
         for k in ("start_time", "end_time"):
             t = metadata.pop(k, None)
             if t is not None:
-                t = datetime.fromisoformat(t).replace(tzinfo=UTC).timestamp()
+                t = datetime.fromisoformat(t).replace(tzinfo=timezone.utc).timestamp()
                 out["core."+k] = t
-            
+        #
+        # The rest must be either dimensions or known core attributes
+        #
+        
         for name, value in metadata.items():
             if '.' not in name:
                 if name not in self.CoreAttributes:
