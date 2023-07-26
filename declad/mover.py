@@ -124,6 +124,10 @@ class MoverTask(Task, Logged):
     def name(self):
         return self.FileDesc.Name
         
+    @property
+    def path(self):
+        return self.FileDesc.Path
+        
     def rucio_dataset_did(self, desc, metadata):
         meta = metadata.copy()
         meta["run_number"] = meta["runs"][0][0]
@@ -542,21 +546,21 @@ class Manager(PyThread, Logged):
         return active + waiting
 
     @synchronized
-    def add_files(self, files_dict):
-        # files_dict: {name:desc}
+    def add_files(self, files):
+        # files_dict: [desc,...]
         # purge expired retry-after entries and the list of found but delayed files
         #self.RetryAfter = dict((name, t) for name, t in self.RetryAfter.items() if t > time.time())
         #self.Delayed = dict((name, t) for name, t in self.Delayed.items() if t > time.time())
         waiting, active = self.TaskQueue.tasks()
-        in_progress = set(t.name for t in waiting + active)
+        in_progress = set(t.path for t in waiting + active)
         nqueued = 0
-        for name, filedesc in files_dict.items():
-            name = filedesc.Name
-            if name not in in_progress:
-                task = self.RecentTasks.get(name)
+        for filedesc in files:
+            path = filedesc.Path
+            if path not in in_progress:
+                task = self.RecentTasks.get(path)
                 if task is None:
                     task = MoverTask(self.Config, filedesc)
-                    self.RecentTasks[name] = task
+                    self.RecentTasks[path] = task
                 task.KeepUntil = time.time() + self.TaskKeepInterval
                 if task.RetryAfter is None or task.RetryAfter < time.time():
                     task.RetryAfter = time.time() + self.RetryCooldown
@@ -594,7 +598,7 @@ class Manager(PyThread, Logged):
             self.HistoryDB.file_failed(desc.Name, desc.Size, task.Started, error, task.Ended)
 
     def purge_memory(self):
-        self.RecentTasks = {name: task for name, task in self.RecentTasks.items() if task.KeepUntil >= time.time()}
+        self.RecentTasks = {path: task for path, task in self.RecentTasks.items() if task.KeepUntil >= time.time()}
 
     def run(self):
         while not self.Stop:

@@ -40,37 +40,37 @@ class Scanner(PyThread, Logged):
         
     def run(self):
         while not self.Stop:
-            data_files = {}         # name -> desc
-            metadata_files = set()  # data file names correspoinding to the metadata names
             try: files = self.XScanner.scan(self.Location, self.Recursive)
             except:
                 self.error("xrootd scanner error:", "".join(traceback.format_exc()))
             self.debug("scanner returned %d file descriptors" % (len(files,)))
 
-            out_files = {}
+            metadata_files = set()  # data file paths correspoinding to the metadata paths
+            data_files = {}     # path -> desc
+            paired_files = {}      # path -> FileDescriptor
 
             for desc in files:
                 if any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns):
-                    meta_name = desc.Name + self.MetaSuffix
-                    if meta_name in metadata_files:
-                        out_files[desc.Name] = desc
+                    meta_path = desc.Path + self.MetaSuffix
+                    if meta_path in metadata_files:
+                        paired_files[desc.Path] = desc
                     else:
-                        data_files[desc.Name] = desc
+                        data_files[desc.Path] = desc
                 elif any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.MetadataPatterns) and desc.Size > 0:
-                    data_name = desc.Name[:-len(self.MetaSuffix)]
-                    data_desc = data_files.get(data_name)
+                    data_path = desc.Path[:-len(self.MetaSuffix)]
+                    data_desc = data_files.get(data_path)
                     if data_desc is not None:
-                        out_files[data_name] = data_desc
+                        paired_files[data_path] = data_desc
                     else:
-                        metadata_files.add(data_name)
+                        metadata_files.add(data_path)
 
-            self.log("found %d matching files" % (len(out_files),))
+            self.log("found %d matching files" % (len(paired_files),))
             
-            if out_files:
+            if paired_files:
                 #self.debug("sending files:")
                 #for fn, desc in out_files.items():
                 #    self.debug(desc.Path, fn)
-                self.Receiver.add_files(out_files)
+                self.Receiver.add_files(paired_files.values())
 
             if not self.Stop:
                 self.sleep(self.Interval)
