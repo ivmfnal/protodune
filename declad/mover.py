@@ -55,7 +55,8 @@ class MoverTask(Task, Logged):
         "events":       "core.events",
         "first_event":  "core.first_event_number",
         "last_event":   "core.last_event_number",
-        "event_count":  "core.event_count"
+        "event_count":  "core.event_count",
+        "group":        "core.group"
     }
     
     def metacat_metadata(self, desc, metadata):
@@ -83,7 +84,14 @@ class MoverTask(Task, Logged):
         out["core.runs_subruns"] = sorted(list(runs_subruns))
         out["core.runs"] = sorted(list(runs))
         out["core.run_type"] = run_type
-
+        app = metadata.pop("application", None)
+        if app:
+            if "name" in app:               out["core.application.name"]    = app["name"]
+            if "version" in app:            out["core.application.version"] = app["version"]
+            if "family" in app:             out["core.application.family"]  = app["family"]
+            if "family" in app and "name" in app:
+                out["core.application"] = app["family"] + "." + app["name"]
+            
         for name, value in metadata.items():
             if '.' not in name:
                 if name not in self.CoreAttributes:
