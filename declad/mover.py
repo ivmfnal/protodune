@@ -295,7 +295,7 @@ class MoverTask(Task, Logged):
 
             ret, output = runCommand(create_dirs_command, self.TransferTimeout, self.debug)
             if ret:
-                return self.debug("create dirs failed (will be ignored assuming it already exists): %s" % (output,))
+                self.debug("create dirs failed (will be ignored assuming it already exists): %s" % (output,))
 
             copy_cmd = self.Config["copy_command_template"] \
                 .replace("$dst_url", data_dst_url)  \
