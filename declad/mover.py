@@ -6,6 +6,8 @@ from samweb_client import SAMDeclarationError
 from logs import Logged
 from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
+from datetime import datetime
+import datetime.timezone.utc as UTC
 
 class MoverTask(Task, Logged):
     
@@ -69,6 +71,7 @@ class MoverTask(Task, Logged):
         metadata.pop("file_size", None)
         metadata.pop("checksum", None)
         metadata.pop("file_name", None)
+        metadata.pop("creator", None)           # ignored
 
         out = {}
         #
@@ -91,6 +94,12 @@ class MoverTask(Task, Logged):
             if "family" in app:             out["core.application.family"]  = app["family"]
             if "family" in app and "name" in app:
                 out["core.application"] = app["family"] + "." + app["name"]
+        
+        for k in ("start_time", "end_time"):
+            t = metadata.pop(k, None)
+            if t is not None:
+                t = datetime.fromisoformat(t).replace(tzinfo=UTC).timestamp()
+                out["core."+k] = t
             
         for name, value in metadata.items():
             if '.' not in name:
