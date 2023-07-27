@@ -63,7 +63,8 @@ class SAMWebClient(Logged):
         return file_id
 
     def add_location(self, file_name_or_id, location):
-        url = f"{self.URL}/{file_name_or_id}/locations"
+        file_name_or_id = quote(file_name_or_id)
+        url = f"{self.URL}/files/name/{file_name_or_id}/locations"
         self.debug("add_location: URL:", url)
         response = requests.post(url, 
             data=json.dumps({
