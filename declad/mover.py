@@ -286,12 +286,11 @@ class MoverTask(Task, Logged):
             #
             # copy data
             #
+            self.timestamp("creating dirs")
             create_dirs_command = self.Config["create_dirs_command_template"]   \
                 .replace("$server", self.DestServer)    \
                 .replace("$path", dest_dir_abs_path)
-            self.debug("create dirs command:", create_dirs_command)
-
-            self.timestamp("creating dirs")
+            #self.debug("create dirs command:", create_dirs_command)
 
             ret, output = runCommand(create_dirs_command, self.TransferTimeout, self.debug)
             if ret:
@@ -410,7 +409,7 @@ class MoverTask(Task, Logged):
         # declare to Rucio
         #
         rclient = rucio_client.client(self.RucioConfig)
-        do_declare_to_rucio = self.Config.get("declare_to_rucio", True)
+        do_declare_to_rucio = self.RucioConfig.get("declare_to_rucio", True)
         if rclient is not None:
             if do_declare_to_rucio:
                 from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
@@ -503,11 +502,10 @@ class MoverTask(Task, Logged):
         self.Failed = True
         if self.QuarantineLocation:
             path = self.FileDesc.Path
-            
+            qpath = self.QuarantineLocation + "/" + self.FileDesc.Name
             cmd = "xrdfs %s mv %s %s" % (
                 self.FileDesc.Server,
-                path,
-                self.QuarantineLocation
+                path, qpath
             )
             self.debug("quarantine command for data %s: %s" % (self.FileDesc.Name, cmd))
             ret, output = runCommand(cmd, self.TransferTimeout, self.debug)
