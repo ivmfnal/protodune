@@ -68,10 +68,11 @@ class SAMWebClient(Logged):
         else:
             url = self.URL + f"/files/id/{id}/locations"
         self.debug("add_location: URL:", url)
-        response = requests.post(url, 
-            data=json.dumps({
+        data = json.dumps({
                 "add" : location
-            }),
+            })
+        self.debug("data:", data)
+        response = requests.post(url, data=data,
             headers={
                 "Content-Type" : "application/json",
                 "SAM-Role": "*"
