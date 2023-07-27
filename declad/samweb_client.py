@@ -94,7 +94,8 @@ class SAMWebClient(Logged):
             cert=(self.Cert, self.Key)
         )
         txt = response.text
-        self.debug("locate_file: response:", str(response), "\n", txt)
+        self.debug("locate_file: response:", str(response))
+        self.debug("    reponse text:", txt)
         data = response.json()
         return [l.get('location') or l['full_path'] for l in data]
 
