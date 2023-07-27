@@ -29,6 +29,7 @@ class SAMDeclarationError(Exception):
 class SAMWebClient(Logged):
     
     def __init__(self, url, cert, key):
+        Logged.__init__(self)
         self.URL = url
         self.Cert = cert
         self.Key = key
@@ -46,9 +47,9 @@ class SAMWebClient(Logged):
         
         if location:
             response = requests.post(f"{self.URL}/{file_id}/locations", 
-                data={
+                data=json.dumps({
                     "add" : location
-                },
+                }),
                 headers={
                     "Content-Type" : "application/json",
                     "SAM-Role": "*"
@@ -62,10 +63,12 @@ class SAMWebClient(Logged):
         return file_id
 
     def add_location(self, file_name_or_id, location):
-        response = requests.post(f"{self.URL}/{file_name_or_id}/locations", 
-            data={
+        url = f"{self.URL}/{file_name_or_id}/locations"
+        self.debug("add_location: URL:", url)
+        response = requests.post(url, 
+            data=json.dumps({
                 "add" : location
-            },
+            }),
             headers={
                 "Content-Type" : "application/json",
                 "SAM-Role": "*"
@@ -73,7 +76,7 @@ class SAMWebClient(Logged):
             cert=(self.Cert, self.Key)
         )
         if response.status_code // 100 == 4:
-            raise SAMDeclarationError("SAM error adding file location", response.text)
+            raise SAMDeclarationError("SAM error adding file location:", response.text)
         response.raise_for_status()
 
     def get_file(self, name):
