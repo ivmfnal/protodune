@@ -185,8 +185,8 @@ class MoverTask(Task, Logged):
         self.TaskStarted = time.time()
         #self.debug("time:", time.time())
         
-        name, path = self.FileDesc.Name, self.FileDesc.Path
-        #self.debug("name, path:", name, path)
+        filename, path = self.FileDesc.Name, self.FileDesc.Path
+        #self.debug("filename, path:", filename, path)
         assert path.startswith("/")
 
 
@@ -219,7 +219,7 @@ class MoverTask(Task, Logged):
             os.remove(meta_tmp)
 
         # strip whitespace from around the attribute names
-        metadata = {name.strip():value for name, value in metadata.items()}
+        metadata = {key.strip():value for key, value in metadata.items()}
 
         metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
 
@@ -232,7 +232,7 @@ class MoverTask(Task, Logged):
         except Exception as e:
             return self.quarantine("can not get file scope. Error: %s. Metadata runs: %s" % (metadata.get("runs"),))
             
-        did = file_scope + ":" + name
+        did = file_scope + ":" + filename
         file_size = metadata["file_size"]
         adler32_checksum = metadata["checksum"]
         if ':' in adler32_checksum:
@@ -258,7 +258,7 @@ class MoverTask(Task, Logged):
             meta_dict = metacat_meta.copy()
             meta_dict.update(dict(
                 scope = file_scope,
-                name = self.FileDesc.Name
+                name = filename
             ))
             dest_rel_path = self.Config["rel_path_pattern"] % meta_dict
         else:
@@ -327,7 +327,7 @@ class MoverTask(Task, Logged):
         do_declare_to_sam = self.Config.get("declare_to_sam", True)
         if sclient is not None:
             self.timestamp("declaring to SAM")
-            existing_sam_meta = sclient.get_file(name)
+            existing_sam_meta = sclient.get_file(filename)
             if existing_sam_meta is not None:
                 try:    file_id = str(existing_sam_meta["file_id"])
                 except KeyError:
@@ -358,7 +358,8 @@ class MoverTask(Task, Logged):
                 .replace("$dst_rel_path", dest_rel_path) \
                 .replace("$dst_data_path", dest_data_path)
             if do_add_locations:
-                try:    sclient.add_location(file_id, sam_location)
+                self.debug(f"Adding location for {filename}: {sam_location}")
+                try:    sclient.add_location(filename, sam_location)
                 except SAMDeclarationError as e:
                     return self.failed(str(e))
                     self.log("added SAM location:", sam_location)
@@ -385,7 +386,7 @@ class MoverTask(Task, Logged):
                     metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
                     file_info = {
                             "namespace":    file_scope,
-                            "name":         name,
+                            "name":         filename,
                             "metadata":     metacat_meta,
                             "size":         file_size,
                             "checksums":    {   "adler32":  adler32_checksum   },
@@ -395,7 +396,7 @@ class MoverTask(Task, Logged):
                     #print("about to call mclient.declare_files with file_info:", file_info)
                     try:    
                         file_info = mclient.declare_file(
-                            fid=file_id, namespace=file_scope, name=name, 
+                            fid=file_id, namespace=file_scope, name=filename, 
                             metadata=metacat_meta, 
                             dataset_did=dataset_did,
                             size=file_size, checksums={ "adler32":  adler32_checksum }
@@ -405,7 +406,7 @@ class MoverTask(Task, Logged):
                     self.log("file declared to MetaCat")
             else:
                 self.debug("would declare to MetaCat")
-                self.debug("Name, namespace, fid:", name, file_scope, file_id)
+                self.debug("Name, namespace, fid:", filename, file_scope, file_id)
                 self.debug(json.dumps(metacat_meta, indent=2, sort_keys=True))
 
         #
@@ -443,12 +444,12 @@ class MoverTask(Task, Logged):
             
                 # declare file replica to Rucio
                 drop_rse = self.RucioConfig["drop_rse"]
-                rclient.add_replica(drop_rse, file_scope, name, file_size, adler32_checksum)
+                rclient.add_replica(drop_rse, file_scope, filename, file_size, adler32_checksum)
                 self.log(f"File replica declared in drop rse {drop_rse}")
 
                 # add the file to the dataset
                 try:
-                    rclient.attach_dids(dataset_scope, dataset_name, [{"scope":file_scope, "name":name}])
+                    rclient.attach_dids(dataset_scope, dataset_name, [{"scope":file_scope, "name":filename}])
                 except FileAlreadyExists:
                     self.log("File was already attached to the Rucio dataset")
                 else:
