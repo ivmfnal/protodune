@@ -367,14 +367,17 @@ class MoverTask(Task, Logged):
                 
                 # debug
                 self.debug("checking file locations...")
-                locations = sclient.locate_file(filename)
-                if sam_location not in locations:
-                    self.debug("Location", sam_location, "not found in SAM locations:")
-                    for loc in locations:
-                        self.debug("   ", loc)
-                    return self.failed("SAM location verification failed")
-                else:
-                    self.debug("location found")
+                try:
+                    locations = sclient.locate_file(filename)
+                    if sam_location not in locations:
+                        self.debug("Location", sam_location, "not found in SAM locations:")
+                        for loc in locations:
+                            self.debug("   ", loc)
+                        return self.failed("SAM location verification failed")
+                    else:
+                        self.debug("location found")
+                except:
+                    self.debug("locate_file failed:\n", traceback.format_exc())
 
         #
         # declare to MetaCat
