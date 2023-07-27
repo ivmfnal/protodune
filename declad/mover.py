@@ -601,10 +601,10 @@ class Manager(PyThread, Logged):
         #self.debug("task failed:", task, "   will retry after", time.ctime(self.RetryAfter[task.name]))
         if exc_type is not None:
             error = "".join(traceback.format_exception(exc_type, exc_value, tb))
-            self.log(f"Mover {desc.Name} exception:", error)
         else:
             # the error already logged by the task itself
             error = task.Error
+        self.log(f"Mover {desc.Name} failed with error:", error)
         #self.debug("taskFailed: error:", error)
         if task.Status == "quarantined":
             self.HistoryDB.file_quarantined(desc.Name, task.Started, error, task.Ended)
