@@ -329,6 +329,9 @@ class MoverTask(Task, Logged):
             self.timestamp("declaring to SAM")
             existing_sam_meta = sclient.get_file(name)
             if existing_sam_meta is not None:
+                try:    file_id = str(existing_sam_meta["file_id"])
+                except KeyError:
+                    return self.quarantine("Existing SAM metadata does not contain file_id")
                 sam_size = existing_sam_meta.get("file_size")
                 sam_adler32 = dict(ck.split(':', 1) for ck in existing_sam_meta.get("checksum", [])).get("adler32").lower()
                 if sam_size != file_size or adler32_checksum != sam_adler32:
