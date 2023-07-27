@@ -89,11 +89,11 @@ class SAMWebClient(Logged):
             url = self.URL + f"/files/id/{id}/locations"
         response = requests.get(url,
             headers={
-                "Content-Type" : "application/json",
-                "SAM-Role": "*"
+                "Content-Type" : "application/json"
             },
             cert=(self.Cert, self.Key)
         )
+        self.debug("locate_file: response:", str(response), "\n", response.text)
         data = response.json()
         return [l.get('location') or l['full_path'] for l in data]
 
