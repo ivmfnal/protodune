@@ -599,6 +599,7 @@ class Manager(PyThread, Logged):
 
     @synchronized
     def taskEnded(self, queue, task, _):
+        self.log("task ended:", task.name)
         if task.Failed:
             return self.taskFailed(queue, task, None, None, None)
         else:
@@ -609,6 +610,7 @@ class Manager(PyThread, Logged):
 
     @synchronized
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
+        self.log("task failed:", task.name, exc_type, exc_value)
         task.KeepUntil = time.time() + self.TaskKeepInterval
         task.RetryAfter = time.time() + self.RetryCooldown
         desc = task.FileDesc
