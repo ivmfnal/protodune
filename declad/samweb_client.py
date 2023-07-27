@@ -34,8 +34,20 @@ class SAMWebClient(Logged):
         self.Cert = cert
         self.Key = key
 
+    def get_file(self, name=None, id=None):
+        if name:
+            url = self.URL + "/files/name/" + quote(name) + "/metadata?format=json"
+        else:
+            url = self.URL + f"/files/id/{id}/metadata?format=json"
+        response = requests.get(url, headers={"Accept":"application/json"})
+        if response.status_code // 100 == 2:
+            return response.json()
+        else:
+            return None
+
     def declare(self, metadata, location=None):
         data = json.dumps(metadata, indent=1, sort_keys=True)
+        file_name = metadata["file_name"]
         response = requests.post(self.URL + "/files", data=data,
                         headers={"Content-Type":"application/json"},
 			cert=(self.Cert, self.Key)
@@ -46,25 +58,15 @@ class SAMWebClient(Logged):
         file_id = response.text.strip()
         
         if location:
-            response = requests.post(f"{self.URL}/{file_id}/locations", 
-                data=json.dumps({
-                    "add" : location
-                }),
-                headers={
-                    "Content-Type" : "application/json",
-                    "SAM-Role": "*"
-                },
-                cert=(self.Cert, self.Key)
-            )
-            if response.status_code // 100 == 4:
-                raise SAMDeclarationError("SAM error adding file location", response.text)
-            response.raise_for_status()
+            self.add_location(location, id=file_id)
 
         return file_id
 
-    def add_location(self, file_name_or_id, location):
-        file_name_or_id = quote(file_name_or_id)
-        url = f"{self.URL}/files/name/{file_name_or_id}/locations"
+    def add_location(self, location, name=None, id=None):
+        if name:
+            url = self.URL + "/files/name/" + quote(name) + "/locations"
+        else:
+            url = self.URL + f"/files/id/{id}/locations"
         self.debug("add_location: URL:", url)
         response = requests.post(url, 
             data=json.dumps({
@@ -79,14 +81,6 @@ class SAMWebClient(Logged):
         if response.status_code // 100 == 4:
             raise SAMDeclarationError("SAM error adding file location:", response.text)
         response.raise_for_status()
-
-    def get_file(self, name):
-        url = self.URL + "/files/name/" + quote(name) + "/metadata?format=json"
-        response = requests.get(url, headers={"Accept":"application/json"})
-        if response.status_code // 100 == 2:
-            return response.json()
-        else:
-            return None
 
     def file_exists(self, name):
         return self.get_file(name) is not None

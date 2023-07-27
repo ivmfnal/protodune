@@ -344,28 +344,24 @@ class MoverTask(Task, Logged):
                     try:    file_id = sclient.declare(sam_metadata)
                     except SAMDeclarationError as e:
                         return self.failed(str(e))
-                    self.log("declared to SAM with file id:", file_id)
+                    self.log("declared to SAM. File id:", file_id)
                 else:
                     self.debug("would declare to SAM:", json.dumps(sam_metadata, indent=4, sort_keys=True))
 
-        #
-        # Add SAM location
-        #
-        sam_location_template = self.Config.get("sam_location_template")
-        do_add_locations = do_declare_to_sam and self.Config.get("add_sam_locations", True)
-        if sam_location_template:
-            sam_location = sam_location_template \
-                .replace("$dst_rel_path", dest_rel_path) \
-                .replace("$dst_data_path", dest_data_path)
-            if do_add_locations:
+            #
+            # Add SAM location
+            #
+            sam_location_template = self.Config.get("sam_location_template")
+            do_add_locations = do_declare_to_sam and self.Config.get("add_sam_locations", True)
+            if sam_location_template and do_add_locations:
+                sam_location = sam_location_template \
+                    .replace("$dst_rel_path", dest_rel_path) \
+                    .replace("$dst_data_path", dest_data_path)
                 self.debug(f"Adding location for {filename}: {sam_location}")
-                try:    sclient.add_location(filename, sam_location)
+                try:    sclient.add_location(sam_location, name=filename)
                 except SAMDeclarationError as e:
                     return self.failed(str(e))
-                    self.log("added SAM location:", sam_location)
-            else:
-                # debug
-                self.debug("would add SAM location:", sam_location)
+                self.log("added SAM location:", sam_location)
 
         #
         # declare to MetaCat
