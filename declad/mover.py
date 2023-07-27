@@ -373,6 +373,8 @@ class MoverTask(Task, Logged):
                     for loc in locations:
                         self.debug("   ", loc)
                     return self.failed("SAM location verification failed")
+                else:
+                    self.debug("location found")
 
         #
         # declare to MetaCat
