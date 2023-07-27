@@ -353,15 +353,26 @@ class MoverTask(Task, Logged):
             #
             sam_location_template = self.Config.get("sam_location_template")
             do_add_locations = do_declare_to_sam and self.Config.get("add_sam_locations", True)
+            dest_data_dir = dest_data_path.rsplit('/')[0]
             if sam_location_template and do_add_locations:
                 sam_location = sam_location_template \
                     .replace("$dst_rel_path", dest_rel_path) \
-                    .replace("$dst_data_path", dest_data_path)
+                    .replace("$dst_data_path", dest_data_path) \
+                    .replace("$dest_data_dir", dest_data_dir)
                 self.debug(f"Adding location for {filename}: {sam_location}")
                 try:    sclient.add_location(sam_location, name=filename)
                 except SAMDeclarationError as e:
                     return self.failed(str(e))
                 self.log("added SAM location:", sam_location)
+                
+                # debug
+                self.debug("checking file locations...")
+                locations = sclient.locate_file(filename)
+                if sam_location not in locations:
+                    self.debug("Location", sam_location, "not found in SAM locations:")
+                    for loc in locations:
+                        self.debug("   ", loc)
+                    return self.failed("SAM location verification failed")
 
         #
         # declare to MetaCat

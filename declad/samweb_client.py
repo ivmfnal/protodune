@@ -81,6 +81,15 @@ class SAMWebClient(Logged):
         if response.status_code // 100 == 4:
             raise SAMDeclarationError("SAM error adding file location:", response.text)
         response.raise_for_status()
+        
+    def locate_file(self, name=None, id=None):
+        if name:
+            url = self.URL + "/files/name/" + quote(name) + "/locations"
+        else:
+            url = self.URL + f"/files/id/{id}/locations"
+        response = requests.get(url)
+        data = response.json()
+        return [l.get('location') or l['full_path'] for l in data]
 
     def file_exists(self, name):
         return self.get_file(name) is not None
