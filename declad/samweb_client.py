@@ -77,15 +77,15 @@ class SAMWebClient(Logged):
                 "From": "dunepro@dunedecladgpvm01.fnal.gov",
                 "Content-type": "application/x-www-form-urlencoded"
             }
-        self.debug("add_location request:")
-        self.debug("  url:", url)
-        self.debug("  headers:", headers)
-        self.debug("  data:", data)
+        #self.debug("add_location request:")
+        #self.debug("  url:", url)
+        #self.debug("  headers:", headers)
+        #self.debug("  data:", data)
         response = requests.post(url, data=data, headers=headers,
             cert=(self.Cert, self.Key)
         )
-        self.debug("response:", str(response))
-        self.debug(f"  text:[{response.text}]")
+        #self.debug("response:", str(response))
+        #self.debug(f"  text:[{response.text}]")
         if response.status_code // 100 == 4:
             raise SAMDeclarationError("SAM error adding file location:", response.text)
         response.raise_for_status()
