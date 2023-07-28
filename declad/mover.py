@@ -384,6 +384,7 @@ class MoverTask(Task, Logged):
                         return self.failed("SAM location verification failed")
                     else:
                         #self.debug("location found")
+                        pass
                 except:
                     self.debug("locate_file failed:\n", traceback.format_exc())
 
