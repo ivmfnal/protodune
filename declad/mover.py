@@ -360,7 +360,13 @@ class MoverTask(Task, Logged):
                     .replace("$dst_data_path", dest_data_path) \
                     .replace("$dst_data_dir", dst_data_dir)
                 self.debug(f"Adding location for {filename}: {sam_location}")
-                try:    sclient.add_location(sam_location, name=filename)
+                try:    
+                    try:
+                        sclient.add_location(sam_location, name=filename)
+                    except:
+                        self.debug("error in add_location:")
+                        self.debug(traceback.format_exc())
+                        raise
                 except SAMDeclarationError as e:
                     return self.failed(str(e))
                 self.log("added SAM location:", sam_location)
