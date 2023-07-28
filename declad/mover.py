@@ -354,11 +354,13 @@ class MoverTask(Task, Logged):
             sam_location_template = self.Config.get("sam_location_template")
             do_add_locations = do_declare_to_sam and self.Config.get("add_sam_locations", True)
             dst_data_dir = dest_data_path.rsplit('/', 1)[0]
+            dst_rel_dir = dst_rel_path.rsplit('/', 1)[0]
             if sam_location_template and do_add_locations:
                 sam_location = sam_location_template \
                     .replace("$dst_rel_path", dest_rel_path) \
                     .replace("$dst_data_path", dest_data_path) \
-                    .replace("$dst_data_dir", dst_data_dir)
+                    .replace("$dst_data_dir", dst_data_dir) \
+                    .replace("$dst_rel_dir", dst_rel_dir)
                 self.debug(f"Adding location for {filename}: {sam_location}")
                 try:    
                     try:
