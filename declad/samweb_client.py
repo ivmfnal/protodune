@@ -75,7 +75,8 @@ class SAMWebClient(Logged):
         response = requests.post(url, data=data,
             headers={
                 "Accept" : "application/json",
-                "SAM-Role": "*"
+                "SAM-Role": "*",
+                'From': 'dunepro@dunedecladgpvm01.fnal.gov'
             },
             cert=(self.Cert, self.Key)
         )
