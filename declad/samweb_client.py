@@ -74,7 +74,8 @@ class SAMWebClient(Logged):
         headers={
                 "Accept" : "application/json",
                 "SAM-Role": "*",
-                'From': 'dunepro@dunedecladgpvm01.fnal.gov'
+                "From": "dunepro@dunedecladgpvm01.fnal.gov",
+                "Content-type": "application/x-www-form-urlencoded"
             }
         self.debug("add_location request:")
         self.debug("  url:", url)
