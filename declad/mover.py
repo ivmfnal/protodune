@@ -543,7 +543,7 @@ class Manager(PyThread, Logged):
         PyThread.__init__(self, name="Mover")
         Logged.__init__(self, name="Mover")
         self.Config = config
-        capacity = config.get("queue_capacity")
+        capacity = None             # config.get("queue_capacity") possible deadlock otherwise
         max_movers = config.get("max_movers", 10)
         stagger = config.get("stagger", 0.5)
         max_movers = 1
@@ -584,6 +584,10 @@ class Manager(PyThread, Logged):
 
     @synchronized
     def add_files(self, files_dict):
+        #
+        # WARNING: this can cause a deadlock of the queue capacity is limited
+        #
+        
         # files_dict: {name:desc}
         # purge expired retry-after entries and the list of found but delayed files
         #self.RetryAfter = dict((name, t) for name, t in self.RetryAfter.items() if t > time.time())
