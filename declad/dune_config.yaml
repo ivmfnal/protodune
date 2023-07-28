@@ -6,6 +6,8 @@ source_server: &src_server eospublic.cern.ch
 destination_server: *src_server
 parse_re:    &EOS_template   ^(?P<type>[a-z-])[rwx-]+\s+[^ ]+\s+[^ ]+\s+(?P<size>\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<path>\S+)$
 
+meta_suffix:        .json           # optional, default: .json
+
 scanners:
     -   
         server: *src_server
@@ -33,7 +35,6 @@ scanners:
         timeout:                60      # seconds
         interval:       30
 
-meta_suffix:        .json           # optional, default: .json
 quarantine_location: /eos/experiment/neutplatform/protodune/dune/test/dropbox/quarantine
 transfer_timeout: 180
 
