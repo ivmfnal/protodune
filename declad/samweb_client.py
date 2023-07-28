@@ -84,7 +84,7 @@ class SAMWebClient(Logged):
             cert=(self.Cert, self.Key)
         )
         self.debug("response:", str(response))
-        self.debug(f"  text:[{text}]")
+        self.debug(f"  text:[{response.text}]")
         if response.status_code // 100 == 4:
             raise SAMDeclarationError("SAM error adding file location:", response.text)
         response.raise_for_status()
