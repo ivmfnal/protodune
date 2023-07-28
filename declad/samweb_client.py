@@ -74,7 +74,7 @@ class SAMWebClient(Logged):
         data = {
                 "add" : location
             }
-        self.debug("data:", data)
+        self.debug("data:", str(data))
         response = requests.post(url, data=data,
             headers={
                 "Content-Type" : "application/json",
