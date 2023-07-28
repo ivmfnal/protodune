@@ -71,16 +71,20 @@ class SAMWebClient(Logged):
         data = urlencode({
                 "add" : location
             }).encode("utf-8")
-        self.debug("data:", data)
-        response = requests.post(url, data=data,
-            headers={
+        headers={
                 "Accept" : "application/json",
                 "SAM-Role": "*",
                 'From': 'dunepro@dunedecladgpvm01.fnal.gov'
-            },
+            }
+        self.debug("add_location request:")
+        self.debug("  url:", url)
+        self.debug("  headers:", headers)
+        self.debug("  data:", data)
+        response = requests.post(url, data=data, headers=headers,
             cert=(self.Cert, self.Key)
         )
-        self.debug("response:", str(response), response.text)
+        self.debug("response:", str(response))
+        self.debug(f"  text:[{text}]")
         if response.status_code // 100 == 4:
             raise SAMDeclarationError("SAM error adding file location:", response.text)
         response.raise_for_status()
