@@ -1,6 +1,6 @@
 from logs import Logged
 import requests, json
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 
 """
@@ -68,16 +68,13 @@ class SAMWebClient(Logged):
         else:
             url = self.URL + f"/files/id/{id}/locations"
         self.debug("add_location: URL:", url)
-        data = json.dumps({
+        data = urlencode({
                 "add" : location
-            })
-        data = {
-                "add" : location
-            }
-        self.debug("data:", str(data))
+            }).encode("utf-8")
+        self.debug("data:", data)
         response = requests.post(url, data=data,
             headers={
-                "Content-Type" : "application/json",
+                "Accept" : "application/json",
                 "SAM-Role": "*"
             },
             cert=(self.Cert, self.Key)
@@ -94,14 +91,14 @@ class SAMWebClient(Logged):
             url = self.URL + f"/files/id/{id}/locations"
         response = requests.get(url,
             headers={
-                "Content-Type" : "application/json"
+                "Accept" : "application/json",
+                "SAM-Role": "default"
             },
             cert=(self.Cert, self.Key)
         )
         txt = response.text
         self.debug("locate_file: response:", str(response))
         self.debug("    reponse text:", txt)
-        return []
         data = response.json()
         return [l.get('location') or l['full_path'] for l in data]
 
