@@ -7,15 +7,14 @@ from xrootd_scanner import XRootDScanner
 
 class Scanner(PyThread, Logged):
 
-    MetaSuffix = ".json"
     DefaultInterval = 300
 
-    def __init__(self, receiver, config, interval=None):
-        PyThread.__init__(self, daemon=True, name="Scanner")
-        Logged.__init__(self, f"Scanner")
-        self.Interval = interval or self.DefaultInterval
+    def __init__(self, receiver, scan_config, meta_suffix=".json"):
+        PyThread.__init__(self, daemon=True, name=f"Scanner {self.Server}:{self.Location}")
+        self.Server, self.Location = scan_config["server"], scan_config["location"]
+        Logged.__init__(self, f"Scanner {self.Server}:{self.Location}")
+        self.Interval = int(scan_config.get("interval", self.DefaultInterval))
         self.Receiver = receiver
-        scan_config = config["scanner"]
         self.Recursive = scan_config.get("recursive", False)
         self.Server, self.Location = scan_config["server"], scan_config["location"]
         self.XScanner = XRootDScanner(self.Server, scan_config)
@@ -23,7 +22,6 @@ class Scanner(PyThread, Logged):
         if not patterns:
             raise ValueError("Filename patterns (filename_patterns) not found in the config file")
         self.FilenamePatterns = patterns if isinstance(patterns, list) else [patterns]
-        self.MetaSuffix = config.get("meta_suffix", ".json")
         self.MetadataPatterns = [pattern + self.MetaSuffix for pattern in self.FilenamePatterns]
         self.Stop = False
 

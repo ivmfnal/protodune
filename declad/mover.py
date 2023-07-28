@@ -6,6 +6,7 @@ from samweb_client import SAMDeclarationError
 from logs import Logged
 from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
+from datetime import datetime, timezone
 
 class MoverTask(Task, Logged):
     
@@ -55,7 +56,8 @@ class MoverTask(Task, Logged):
         "events":       "core.events",
         "first_event":  "core.first_event_number",
         "last_event":   "core.last_event_number",
-        "event_count":  "core.event_count"
+        "event_count":  "core.event_count",
+        "group":        "core.group"
     }
     
     def metacat_metadata(self, desc, metadata):
@@ -68,6 +70,8 @@ class MoverTask(Task, Logged):
         metadata.pop("file_size", None)
         metadata.pop("checksum", None)
         metadata.pop("file_name", None)
+        metadata.pop("creator", None)           # ignored
+        metadata.pop("user", None)              # ignored
 
         out = {}
         #
@@ -83,11 +87,27 @@ class MoverTask(Task, Logged):
         out["core.runs_subruns"] = sorted(list(runs_subruns))
         out["core.runs"] = sorted(list(runs))
         out["core.run_type"] = run_type
-
+        app = metadata.pop("application", None)
+        if app:
+            if "name" in app:               out["core.application.name"]    = app["name"]
+            if "version" in app:            out["core.application.version"] = app["version"]
+            if "family" in app:             out["core.application.family"]  = app["family"]
+            if "family" in app and "name" in app:
+                out["core.application"] = app["family"] + "." + app["name"]
+        
+        for k in ("start_time", "end_time"):
+            t = metadata.pop(k, None)
+            if t is not None:
+                t = datetime.fromisoformat(t).replace(tzinfo=timezone.utc).timestamp()
+                out["core."+k] = t
+        #
+        # The rest must be either dimensions or known core attributes
+        #
+        
         for name, value in metadata.items():
             if '.' not in name:
                 if name not in self.CoreAttributes:
-                    raise ValueError("Unknown core metadata parameter: %s = %s for file %s", (name, value, desc.Name))
+                    raise ValueError("Unknown core metadata parameter: %s = %s for file %s" % (name, value, desc.Name))
                 name = self.CoreAttributes[name]
             if self.LowecaseMetadataNames:
                 name = name.lower()
@@ -169,8 +189,8 @@ class MoverTask(Task, Logged):
         self.TaskStarted = time.time()
         #self.debug("time:", time.time())
         
-        name, path = self.FileDesc.Name, self.FileDesc.Path
-        #self.debug("name, path:", name, path)
+        filename, path = self.FileDesc.Name, self.FileDesc.Path
+        #self.debug("filename, path:", filename, path)
         assert path.startswith("/")
 
 
@@ -203,7 +223,7 @@ class MoverTask(Task, Logged):
             os.remove(meta_tmp)
 
         # strip whitespace from around the attribute names
-        metadata = {name.strip():value for name, value in metadata.items()}
+        metadata = {key.strip():value for key, value in metadata.items()}
 
         metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
 
@@ -216,7 +236,7 @@ class MoverTask(Task, Logged):
         except Exception as e:
             return self.quarantine("can not get file scope. Error: %s. Metadata runs: %s" % (metadata.get("runs"),))
             
-        did = file_scope + ":" + name
+        did = file_scope + ":" + filename
         file_size = metadata["file_size"]
         adler32_checksum = metadata["checksum"]
         if ':' in adler32_checksum:
@@ -242,7 +262,7 @@ class MoverTask(Task, Logged):
             meta_dict = metacat_meta.copy()
             meta_dict.update(dict(
                 scope = file_scope,
-                name = self.FileDesc.Name
+                name = filename
             ))
             dest_rel_path = self.Config["rel_path_pattern"] % meta_dict
         else:
@@ -270,16 +290,15 @@ class MoverTask(Task, Logged):
             #
             # copy data
             #
+            self.timestamp("creating dirs")
             create_dirs_command = self.Config["create_dirs_command_template"]   \
                 .replace("$server", self.DestServer)    \
                 .replace("$path", dest_dir_abs_path)
-            self.debug("create dirs command:", create_dirs_command)
-
-            self.timestamp("creating dirs")
+            #self.debug("create dirs command:", create_dirs_command)
 
             ret, output = runCommand(create_dirs_command, self.TransferTimeout, self.debug)
             if ret:
-                return self.failed("Create dirs failed: %s" % (output,))
+                self.debug("create dirs failed (will be ignored assuming it already exists): %s" % (output,))
 
             copy_cmd = self.Config["copy_command_template"] \
                 .replace("$dst_url", data_dst_url)  \
@@ -312,8 +331,11 @@ class MoverTask(Task, Logged):
         do_declare_to_sam = self.Config.get("declare_to_sam", True)
         if sclient is not None:
             self.timestamp("declaring to SAM")
-            existing_sam_meta = sclient.get_file(name)
+            existing_sam_meta = sclient.get_file(filename)
             if existing_sam_meta is not None:
+                try:    file_id = str(existing_sam_meta["file_id"])
+                except KeyError:
+                    return self.quarantine("Existing SAM metadata does not contain file_id")
                 sam_size = existing_sam_meta.get("file_size")
                 sam_adler32 = dict(ck.split(':', 1) for ck in existing_sam_meta.get("checksum", [])).get("adler32").lower()
                 if sam_size != file_size or adler32_checksum != sam_adler32:
@@ -326,27 +348,49 @@ class MoverTask(Task, Logged):
                     try:    file_id = sclient.declare(sam_metadata)
                     except SAMDeclarationError as e:
                         return self.failed(str(e))
-                    self.log("declared to SAM with file id:", file_id)
+                    self.log("declared to SAM. File id:", file_id)
                 else:
                     self.debug("would declare to SAM:", json.dumps(sam_metadata, indent=4, sort_keys=True))
 
-        #
-        # Add SAM location
-        #
-        sam_location_template = self.Config.get("sam_location_template")
-        do_add_locations = do_declare_to_sam and self.Config.get("add_sam_locations", True)
-        if sam_location_template:
-            sam_location = sam_location_template \
-                .replace("$dst_rel_path", dest_rel_path) \
-                .replace("$dst_data_path", dest_data_path)
-            if do_add_locations:
-                try:    sclient.add_location(file_id, sam_location)
+            #
+            # Add SAM location
+            #
+            sam_location_template = self.Config.get("sam_location_template")
+            do_add_locations = do_declare_to_sam and self.Config.get("add_sam_locations", True)
+            dst_data_dir = dest_data_path.rsplit('/', 1)[0]
+            dst_rel_dir = dest_rel_path.rsplit('/', 1)[0]
+            if sam_location_template and do_add_locations:
+                sam_location = sam_location_template \
+                    .replace("$dst_rel_path", dest_rel_path) \
+                    .replace("$dst_data_path", dest_data_path) \
+                    .replace("$dst_data_dir", dst_data_dir) \
+                    .replace("$dst_rel_dir", dst_rel_dir)
+                self.debug(f"Adding location for {filename}: {sam_location}")
+                try:    
+                    try:
+                        sclient.add_location(sam_location, name=filename)
+                    except:
+                        self.debug("error in add_location:")
+                        self.debug(traceback.format_exc())
+                        raise
                 except SAMDeclarationError as e:
                     return self.failed(str(e))
-                    self.log("added SAM location:", sam_location)
-            else:
+                self.log("added SAM location:", sam_location)
+                
                 # debug
-                self.debug("would add SAM location:", sam_location)
+                #self.debug("checking file locations...")
+                try:
+                    locations = sclient.locate_file(filename)
+                    if sam_location not in locations:
+                        self.log("Location", sam_location, "not found in SAM locations:")
+                        for loc in locations:
+                            self.debug("   ", loc)
+                        return self.failed("SAM location verification failed")
+                    else:
+                        #self.debug("location found")
+                        pass
+                except:
+                    self.debug("locate_file failed:\n", traceback.format_exc())
 
         #
         # declare to MetaCat
@@ -367,7 +411,7 @@ class MoverTask(Task, Logged):
                     metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
                     file_info = {
                             "namespace":    file_scope,
-                            "name":         name,
+                            "name":         filename,
                             "metadata":     metacat_meta,
                             "size":         file_size,
                             "checksums":    {   "adler32":  adler32_checksum   },
@@ -377,7 +421,7 @@ class MoverTask(Task, Logged):
                     #print("about to call mclient.declare_files with file_info:", file_info)
                     try:    
                         file_info = mclient.declare_file(
-                            fid=file_id, namespace=file_scope, name=name, 
+                            fid=file_id, namespace=file_scope, name=filename, 
                             metadata=metacat_meta, 
                             dataset_did=dataset_did,
                             size=file_size, checksums={ "adler32":  adler32_checksum }
@@ -387,14 +431,14 @@ class MoverTask(Task, Logged):
                     self.log("file declared to MetaCat")
             else:
                 self.debug("would declare to MetaCat")
-                self.debug("Name, namespace, fid:", name, file_scope, file_id)
+                self.debug("Name, namespace, fid:", filename, file_scope, file_id)
                 self.debug(json.dumps(metacat_meta, indent=2, sort_keys=True))
 
         #
         # declare to Rucio
         #
         rclient = rucio_client.client(self.RucioConfig)
-        do_declare_to_rucio = self.Config.get("declare_to_rucio", True)
+        do_declare_to_rucio = self.RucioConfig.get("declare_to_rucio", True)
         if rclient is not None:
             if do_declare_to_rucio:
                 from rucio.common.exception import DataIdentifierAlreadyExists, DuplicateRule, FileAlreadyExists
@@ -425,12 +469,12 @@ class MoverTask(Task, Logged):
             
                 # declare file replica to Rucio
                 drop_rse = self.RucioConfig["drop_rse"]
-                rclient.add_replica(drop_rse, file_scope, name, file_size, adler32_checksum)
+                rclient.add_replica(drop_rse, file_scope, filename, file_size, adler32_checksum)
                 self.log(f"File replica declared in drop rse {drop_rse}")
 
                 # add the file to the dataset
                 try:
-                    rclient.attach_dids(dataset_scope, dataset_name, [{"scope":file_scope, "name":name}])
+                    rclient.attach_dids(dataset_scope, dataset_name, [{"scope":file_scope, "name":filename}])
                 except FileAlreadyExists:
                     self.log("File was already attached to the Rucio dataset")
                 else:
@@ -469,7 +513,7 @@ class MoverTask(Task, Logged):
     def timestamp(self, event, info=None):
         self.EventDict[event] = self.LastUpdate = t =  time.time()
         self.EventLog.append((event, t, info))
-        self.log(event)
+        self.log("-----", event)
         #self.debug(event, "info:", info)
         self.Status = event
 
@@ -487,11 +531,10 @@ class MoverTask(Task, Logged):
         self.Failed = True
         if self.QuarantineLocation:
             path = self.FileDesc.Path
-            
+            qpath = self.QuarantineLocation + "/" + self.FileDesc.Name
             cmd = "xrdfs %s mv %s %s" % (
                 self.FileDesc.Server,
-                path,
-                self.QuarantineLocation
+                path, qpath
             )
             self.debug("quarantine command for data %s: %s" % (self.FileDesc.Name, cmd))
             ret, output = runCommand(cmd, self.TransferTimeout, self.debug)
@@ -507,7 +550,7 @@ class Manager(PyThread, Logged):
         PyThread.__init__(self, name="Mover")
         Logged.__init__(self, name="Mover")
         self.Config = config
-        capacity = config.get("queue_capacity")
+        capacity = None             # config.get("queue_capacity") possible deadlock otherwise
         max_movers = config.get("max_movers", 10)
         stagger = config.get("stagger", 0.5)
         self.TaskQueue = TaskQueue(max_movers, capacity=capacity, stagger=stagger, delegate=self)
@@ -547,7 +590,11 @@ class Manager(PyThread, Logged):
 
     @synchronized
     def add_files(self, files):
-        # files_dict: [desc,...]
+        #
+        # WARNING: this can cause a deadlock of the queue capacity is limited
+        #
+        
+        # files: iterable FileDescriptor, ...
         # purge expired retry-after entries and the list of found but delayed files
         #self.RetryAfter = dict((name, t) for name, t in self.RetryAfter.items() if t > time.time())
         #self.Delayed = dict((name, t) for name, t in self.Delayed.items() if t > time.time())
@@ -571,6 +618,7 @@ class Manager(PyThread, Logged):
 
     @synchronized
     def taskEnded(self, queue, task, _):
+        self.log("task ended:", task.name)
         if task.Failed:
             return self.taskFailed(queue, task, None, None, None)
         else:
@@ -581,16 +629,17 @@ class Manager(PyThread, Logged):
 
     @synchronized
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
+        self.log("task failed:", task.name, exc_type, exc_value)
         task.KeepUntil = time.time() + self.TaskKeepInterval
         task.RetryAfter = time.time() + self.RetryCooldown
         desc = task.FileDesc
         #self.debug("task failed:", task, "   will retry after", time.ctime(self.RetryAfter[task.name]))
         if exc_type is not None:
             error = "".join(traceback.format_exception(exc_type, exc_value, tb))
-            self.log(f"Mover {desc.Name} exception:", error)
         else:
             # the error already logged by the task itself
             error = task.Error
+        self.log(f"Mover {desc.Name} failed with error:", error)
         #self.debug("taskFailed: error:", error)
         if task.Status == "quarantined":
             self.HistoryDB.file_quarantined(desc.Name, task.Started, error, task.Ended)

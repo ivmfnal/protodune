@@ -133,7 +133,7 @@ class GraphiteSender(PyThread, Logged):
                         #print "graphite: event: %s, t: %s, n: %d" % (event, t, count)
                         out[t][event] = float(count)/self.Bin
                         totals[event] += count
-                self.log("Stats collected:")
-                for event, count in sorted(totals.items()):
-                    self.log(f"    {event}: {count}")
+                #self.log("Stats collected:")
+                #for event, count in sorted(totals.items()):
+                #    self.log(f"    {event}: {count}")
                 self.GInterface.send_timed_array(sorted(out.items()))

@@ -4,20 +4,36 @@ error: logs/declad.errors
 
 source_server: &src_server eospublic.cern.ch
 destination_server: *src_server
+parse_re:    &EOS_template   ^(?P<type>[a-z-])[rwx-]+\s+[^ ]+\s+[^ ]+\s+(?P<size>\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<path>\S+)$
 
-scanner:
-    server: *src_server
-    location:   /eos/experiment/neutplatform/protodune/dune/test/dropbox
-    filename_patterns:
-      -   "*.hdf5"
-      -   "*.root"
-      -   "*.test"
-    # meta_suffix:        .json           # optional
-    ls_command_template:    "xrdfs $server ls -l $location"         # $server and $location will be replaced in run time
-    # EOS: -rw-r--r-- np04data np-comp 1740481216 2023-03-20 11:24:27 /eos/experiment/neutplatform/protodune/rawdata/np04/dropbox/np04_hd_run020713_0000_dataflow0_datawriter_0_20230320T111641.hdf5
-    parse_re:               ^(?P<type>[a-z-])[rwx-]+\s+[^ ]+\s+[^ ]+\s+(?P<size>\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<path>\S+)$
-    timeout:                60      # seconds
+scanners:
+    -   
+        server: *src_server
+        # recursive: no        # default is no
+        location:   /eos/experiment/neutplatform/protodune/dune/test/dropbox1
+        filename_patterns:
+          -   "*.hdf5"
+          -   "*.root"
+          -   "*.test"
+        ls_command_template:    "xrdfs $server ls -l $location"         # $server and $location will be replaced in run time
+        # EOS: -rw-r--r-- np04data np-comp 1740481216 2023-03-20 11:24:27 /eos/experiment/neutplatform/protodune/rawdata/np04/dropbox/np04_hd_run020713_0000_dataflow0_datawriter_0_20230320T111641.hdf5
+        parse_re:  *EOS_template
+        timeout:                300      # seconds
+        interval:       60              # scan interval
+    -
+        server: *src_server
+        recursive: yes
+        location:   /eos/experiment/neutplatform/protodune/dune/test/dropbox2
+        filename_patterns:
+          -   "*.hdf5"
+          -   "*.root"
+          -   "*.test"
+        ls_command_template:    "xrdfs $server ls -l $location"         # $server and $location will be replaced in run time
+        parse_re:  *EOS_template
+        timeout:                60      # seconds
+        interval:       30
 
+meta_suffix:        .json           # optional, default: .json
 quarantine_location: /eos/experiment/neutplatform/protodune/dune/test/dropbox/quarantine
 transfer_timeout: 180
 

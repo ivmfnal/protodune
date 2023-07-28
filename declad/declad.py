@@ -9,21 +9,30 @@ from webpie import HTTPServer
 
 class DeclaD(PyThread, Logged):
     
+    DefaultMetaSuffix = ".json"
+    
     def __init__(self, config, history_db):
         PyThread.__init__(self, name="DeclaD")
         Logged.__init__(self, "declad")
         self.Config = config
         self.HistoryDB = history_db
         self.MoverManager = Manager(config, self.HistoryDB)
-        self.Scanner = Scanner(self.MoverManager, config)
+        meta_suffix = config.get("meta_suffix", self.DefaultMetaSuffix)
+        self.Scanners = [Scanner(self.MoverManager, scanner_config, meta_suffix=meta_suffix) for
+                    scanner_config in config["scanners"]
+        ]
         self.Stop = False
 
     def run(self):
         self.HistoryDB.start()
-        self.Scanner.start()
+        [scanner.start() for scanner in self.Scanners]
         self.MoverManager.start()
         while not self.Stop:
             self.sleep(100)
+            
+    def stop(self):
+        self.Stop = True
+        self.wakeup()
 
     def current_transfers(self):
         return self.MoverManager.current_transfers()

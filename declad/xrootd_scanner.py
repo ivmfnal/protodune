@@ -34,7 +34,7 @@ class XRootDScanner(Logged):
 
     def __init__(self, server, config):
         Logged.__init__(self, f"XRootDScanner")
-        self.Recursive = False
+        self.Recursive = config.get("recursive", False)
         self.Server = server
         self.lsCommandTemplate = config["ls_command_template"].replace("$server", self.Server)                
         self.ParseRE = re.compile(config["parse_re"])
