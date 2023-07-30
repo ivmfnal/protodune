@@ -312,11 +312,11 @@ class MoverTask(Task, Logged):
                 .replace("$dst_data_path", dest_data_path)   \
                 .replace("$src_data_path", src_data_path)   \
                 .replace("$dst_rel_path", dest_rel_path)
-            self.debug("copy command:", copy_cmd)
+            #self.debug("copy command:", copy_cmd)
 
             self.timestamp("transferring data")
 
-            self.debug("copy command:", copy_cmd)
+            #self.debug("copy command:", copy_cmd)
             ret, output = runCommand(copy_cmd, self.TransferTimeout, self.debug)
             if ret:
                 return self.failed("Data copy failed: %s" % (output,))
