@@ -2,19 +2,6 @@ from logs import Logged
 import requests, json
 from urllib.parse import quote, urlencode
 
-
-"""
-import requests
-import logging
-
-# Debug logging
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
-req_log = logging.getLogger('requests.packages.urllib3')
-req_log.setLevel(logging.DEBUG)
-req_log.propagate = True
-"""
-
 class SAMDeclarationError(Exception):
     def __init__(self, message, body=None):
         self.Message = message
@@ -67,7 +54,7 @@ class SAMWebClient(Logged):
             url = self.URL + "/files/name/" + quote(name) + "/locations"
         else:
             url = self.URL + f"/files/id/{id}/locations"
-        self.debug("add_location: URL:", url)
+        #self.debug("add_location: URL:", url)
         data = urlencode({
                 "add" : location
             }).encode("utf-8")
@@ -103,8 +90,8 @@ class SAMWebClient(Logged):
             cert=(self.Cert, self.Key)
         )
         txt = response.text
-        self.debug("locate_file: response:", str(response))
-        self.debug("    reponse text:", txt)
+        #self.debug("locate_file: response:", str(response))
+        #self.debug("    reponse text:", txt)
         data = response.json()
         return [l.get('location') or l['full_path'] for l in data]
 

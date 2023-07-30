@@ -245,7 +245,7 @@ class MoverTask(Task, Logged):
         # Check file size
         #
         if file_size != self.FileDesc.Size:
-            return self.quarantine(f"scanned file size {self.FileDesc.Size} differs from metadata file_size {file_size}")
+            return self.failed(f"Scanned file size {self.FileDesc.Size} differs from metadata file_size {file_size}")
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
         src_data_path = path
@@ -275,13 +275,13 @@ class MoverTask(Task, Logged):
         except Exception as e:
             return self.failed(f"Can not get file size at the destination: {e}")
             
-        if dest_size is not None:
-            self.debug(f"data file exists at the destination {dest_data_path}, size: {dest_size}")
+        #if dest_size is not None:
+        #    self.debug(f"data file exists at the destination {dest_data_path}, size: {dest_size}")
 
         do_move_files = self.Config.get("move_files", True)
         if dest_size != file_size:
             if dest_size is not None:
-                self.log(f"destination file exists at {dest_data_path} but has incorrect size {dest_size} vs. {file_size}")
+                self.log(f"destination file exists but has incorrect size {dest_size} vs. {file_size}")
 
             #
             # copy data
@@ -293,8 +293,8 @@ class MoverTask(Task, Logged):
             #self.debug("create dirs command:", create_dirs_command)
 
             ret, output = runCommand(create_dirs_command, self.TransferTimeout, self.debug)
-            if ret:
-                self.debug("create dirs failed (will be ignored assuming it already exists): %s" % (output,))
+            #if ret:
+            #    self.debug("create dirs failed (will be ignored assuming it already exists): %s" % (output,))
 
             copy_cmd = self.Config["copy_command_template"] \
                 .replace("$dst_url", data_dst_url)  \
@@ -532,10 +532,19 @@ class MoverTask(Task, Logged):
                 self.FileDesc.Server,
                 path, qpath
             )
-            self.debug("quarantine command for data %s: %s" % (self.FileDesc.Name, cmd))
             ret, output = runCommand(cmd, self.TransferTimeout, self.debug)
             if ret:
-                return self.failed("Quarantine for data %s failed: %s" % (self.FileDesc.Name, output))
+                return self.failed("Quarantine for data file %s failed: %s" % (self.FileDesc.Name, output))
+
+            meta_path = self.FileDesc.Path + self.MetaSuffix
+            qmeta_path = self.QuarantineLocation + "/" self.FileDesc.Name + self.MetaSuffix
+            cmd = "xrdfs %s mv %s %s" % (
+                self.FileDesc.Server,
+                meta_path, qmeta_path
+            )
+            ret, output = runCommand(cmd, self.TransferTimeout, self.debug)
+            if ret:
+                return self.failed("Quarantine for metadata file %s failed: %s" % (self.FileDesc.Name + self.MetaSuffix, output))
             self.timestamp("quarantined", self.Error)
         else:
             raise ValueError("Quarantine directory unspecified")
