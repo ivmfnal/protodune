@@ -212,28 +212,43 @@ class MoverTask(Task, Logged):
         
         try:
             metadata = json.load(open(meta_tmp, "r"))
-            metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
         except Exception as e:
-            return self.failed(f"Input metadata error: {e}")
+            return self.failed(f"Metadata loading error: {e}")
         finally:
             os.remove(meta_tmp)
 
         # strip whitespace from around the attribute names
         metadata = {key.strip():value for key, value in metadata.items()}
 
-        metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
+        for x in self.RequiredMetadata:
+            if x not in metadata:
+                return self.quarantine(f"{x} missing from metadata")
 
-        self.debug("metadata downloaded:", metadata)
-        
-        if any (x not in metadata for x in self.RequiredMetadata):
-            return self.failed("Not all required fields are present in metadata")
+        #
+        # Check file size
+        #
+        file_size = metadata.get["file_size"]
+
+        if not isinstance(file_size, int) or file_size <= 0:
+            return self.quarantine(f"Invalid file size in metadata: {file_size}")
+            
+        if file_size != self.FileDesc.Size:
+            return self.failed(f"Scanned file size {self.FileDesc.Size} differs from metadata: {file_size}")
+
+        #
+        # Cibvert to MetaCat format
+        #
+        try:
+            metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
+        except Exception as e:
+            return self.quarantine(f"Error converting metadata to MetaCat: {e}")
 
         try:    file_scope = self.file_scope(self.FileDesc, metadata)
         except Exception as e:
             return self.quarantine("can not get file scope. Error: %s. Metadata runs: %s" % (metadata.get("runs"),))
             
         did = file_scope + ":" + filename
-        file_size = metadata["file_size"]
+            
         adler32_checksum = metadata["checksum"]
         if ':' in adler32_checksum:
             type, value = adler32_checksum.split(':', 1)
@@ -241,11 +256,6 @@ class MoverTask(Task, Logged):
             adler32_checksum = value
         dataset_scope = self.dataset_scope(self.FileDesc, metadata)
         
-        #
-        # Check file size
-        #
-        if file_size != self.FileDesc.Size:
-            return self.failed(f"Scanned file size {self.FileDesc.Size} differs from metadata file_size {file_size}")
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
         src_data_path = path
