@@ -186,7 +186,7 @@ class MoverTask(Task, Logged):
         #self.debug("time:", time.time())
         
         filename, path = self.FileDesc.Name, self.FileDesc.Path
-        #self.debug("filename, path:", filename, path)
+        self.debug("FileDescritor: filename, path, size:", self.FileDesc.Name, self.FileDesc.Path, self.FileDesc.Size)
         assert path.startswith("/")
 
 
