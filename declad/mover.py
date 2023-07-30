@@ -227,7 +227,7 @@ class MoverTask(Task, Logged):
         #
         # Check file size
         #
-        file_size = metadata.get["file_size"]
+        file_size = metadata["file_size"]
 
         if not isinstance(file_size, int) or file_size <= 0:
             return self.quarantine(f"Invalid file size in metadata: {file_size}")
