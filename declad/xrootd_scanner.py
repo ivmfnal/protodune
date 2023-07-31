@@ -39,13 +39,16 @@ class XRootDScanner(Logged):
         self.lsCommandTemplate = config["ls_command_template"].replace("$server", self.Server)                
         self.ParseRE = re.compile(config["parse_re"])
         self.OperationTimeout = config.get("timeout", 30)
-                
-    def scan(self, location):
-        status, error, file_descs, _ = self.listFilesAndDirs(location, self.OperationTimeout)
-        if status == 0:
-            return file_descs
-        else:
-            raise RuntimeError("Error scanning %s: status=%s error=%s" % (location, status, error))
+
+    def scan(self, location, recursively=False):
+        # generator of FileDescriptors
+        status, error, file_descs, dirs = self.listFilesAndDirs(location, self.OperationTimeout)
+        if status != 0:
+            raise RuntimeError("Error: location=%s status=%s error=%s" % (location, status, error))
+        if recursively:
+            for subdir in dirs:
+                file_descs += self.scan(location + "/" + subdir, True)
+        return file_descs
 
     def listFilesAndDirs(self, location, timeout):
         lscommand = self.lsCommandTemplate.replace("$location", location)

@@ -591,10 +591,11 @@ class Manager(PyThread, Logged):
         scanner = XRootDScanner(self.Config["source_server"], self.Config["scanner"])
         error = None
         files = []
-        try:    files = scanner.scan(qlocation)		# returns file descriptors
+        try:    
+            files = scanner.scan(qlocation)		# returns iterable with file descriptors
         except Exception as e:
             error = str(e)
-        return files or [], error
+        return files, error
             
     @synchronized
     def recent_tasks(self):

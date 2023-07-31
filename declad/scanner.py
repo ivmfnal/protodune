@@ -17,6 +17,7 @@ class Scanner(PyThread, Logged):
         self.Receiver = receiver
         scan_config = config["scanner"]
         self.Server, self.Location = scan_config["server"], scan_config["location"]
+        self.Recursive = scan_config.get("recursive", False)
         self.XScanner = XRootDScanner(self.Server, scan_config)
         patterns = scan_config.get("filename_patterns") or scan_config.get("filename_pattern")
         if not patterns:
@@ -27,21 +28,21 @@ class Scanner(PyThread, Logged):
         self.Stop = False
 
     def ls_input(self):
-            try: files = self.XScanner.scan(self.Location)
-            except:
-                return None, "xrootd scanner error: " + "".join(traceback.format_exc())
+        try: files = self.XScanner.scan(self.Location, self.Recursive)
+        except:
+            return None, "xrootd scanner error: " + "".join(traceback.format_exc())
 
-            return [
-                desc for desc in files
-                if any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns + self.MetadataPatterns) 
-            ], None
+        return [
+            desc for desc in files
+            if any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns + self.MetadataPatterns) 
+        ], None
 
         
     def run(self):
         while not self.Stop:
             data_files = {}         # name -> desc
             metadata_files = set()  # data file names correspoinding to the metadata names
-            try: files = self.XScanner.scan(self.Location)
+            try: files = self.XScanner.scan(self.Location, self.Recursive)
             except:
                 self.error("xrootd scanner error:", "".join(traceback.format_exc()))
             self.debug("scanner returned %d file descriptors" % (len(files,)))
