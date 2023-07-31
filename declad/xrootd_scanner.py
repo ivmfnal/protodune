@@ -92,7 +92,10 @@ class XRootDScanner(Logged):
                     t = m["type"]
                     path = m["path"]
                     if t in "f-" and path == file_path:
-                        return int(m["size"])
+                        size = int(m["size"])
+                        if size == 0:
+                            self.debug("Zero size in line:", l)
+                        return size
                     #else:
                     #    raise ScannerError(f"Unknown directory entry type '{t}' in: {l}")
                 elif "no such file or directory" in l.lower():
