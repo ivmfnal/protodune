@@ -45,7 +45,7 @@ class XRootDScanner(Logged):
         if status == 0:
             return file_descs
         else:
-            raise RuntimeError("Error: status=%s error=%s" % (status, error))
+            raise RuntimeError("Error scanning %s: status=%s error=%s" % (location, status, error))
 
     def listFilesAndDirs(self, location, timeout):
         lscommand = self.lsCommandTemplate.replace("$location", location)

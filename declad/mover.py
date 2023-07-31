@@ -1,6 +1,6 @@
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from tools import runCommand
-import json, hashlib, traceback, time, os, pprint
+import json, hashlib, traceback, time, os, pprint, textwrap
 import rucio_client, metacat_client, samweb_client
 from samweb_client import SAMDeclarationError
 from logs import Logged
@@ -635,10 +635,10 @@ class Manager(PyThread, Logged):
 
     @synchronized
     def taskEnded(self, queue, task, _):
-        self.log("task ended:", task.name)
         if task.Failed:
             return self.taskFailed(queue, task, None, None, None)
         else:
+            self.log("\nMover done:", task.name, "\n\n")
             task.KeepUntil = time.time() + self.TaskKeepInterval
             task.RetryAfter = time.time() + self.RetryCooldown
             desc = task.FileDesc
@@ -646,17 +646,17 @@ class Manager(PyThread, Logged):
 
     @synchronized
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
-        self.log("task failed:", task.name, exc_type, exc_value)
+        if exc_type is not None:
+            error = "".join(traceback.format_exception(exc_type, exc_value, tb))
+            error = "\n" + taxtwrap.indent(error, "    ")
+        else:
+            # the error already logged by the task itself
+            error = task.Error
         task.KeepUntil = time.time() + self.TaskKeepInterval
         task.RetryAfter = time.time() + self.RetryCooldown
         desc = task.FileDesc
         #self.debug("task failed:", task, "   will retry after", time.ctime(self.RetryAfter[task.name]))
-        if exc_type is not None:
-            error = "".join(traceback.format_exception(exc_type, exc_value, tb))
-        else:
-            # the error already logged by the task itself
-            error = task.Error
-        self.log(f"Mover {desc.Name} failed with error:", error)
+        self.log(f"\nMover failed: {task.name} status: {task.Status} error:", error, "\n\n")
         #self.debug("taskFailed: error:", error)
         if task.Status == "quarantined":
             self.HistoryDB.file_quarantined(desc.Name, task.Started, error, task.Ended)
