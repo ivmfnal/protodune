@@ -76,7 +76,11 @@ class _HistoryDB(PyThread, Logged):
             c = conn.cursor()
             c.execute("""
                 insert into file_log(filename, tstart, tend, status, info, size) values(?,?,?,?,?,?)
-                """, (filename, tstart, tend, status, info, size))  
+                    on conflict(filename, tstart) do update set tend = ?, status = ?
+                """, (filename, tstart, tend, status, info, size,
+                        tend, status
+                )
+            )  
             conn.commit()    
            
     def file_done(self, filename, size, tstart, tend=None):
