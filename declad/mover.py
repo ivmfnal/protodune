@@ -663,11 +663,16 @@ class Manager(PyThread, Logged):
         else:
             self.HistoryDB.file_failed(desc.Name, desc.Size, task.Started, error, task.Ended)
 
+    @synchronized
     def purge_memory(self):
+        nbefore = len(self.RecentTasks)
         self.RecentTasks = {name: task for name, task in self.RecentTasks.items() if task.KeepUntil >= time.time()}
+        nafter  = len(self.RecentTasks)
+        self.log("purge_memory: known files before and after:", nbefore, nafter)
 
     def run(self):
         while not self.Stop:
-            self.sleep(60, self.purge_memory)
+            self.sleep(60)
+            self.purge_memory
                     
     
