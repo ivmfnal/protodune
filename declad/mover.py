@@ -57,7 +57,8 @@ class MoverTask(Task, Logged):
         "first_event":  "core.first_event_number",
         "last_event":   "core.last_event_number",
         "event_count":  "core.event_count",
-        "group":        "core.group"
+        "group":        "core.group",
+        "lum_block_ranges":        "core.lum_block_ranges"
     }
     
     def metacat_metadata(self, desc, metadata):
@@ -571,7 +572,7 @@ class Manager(PyThread, Logged):
         max_movers = config.get("max_movers", 10)
         stagger = config.get("stagger", 0.5)
         self.TaskQueue = TaskQueue(max_movers, capacity=capacity, stagger=stagger, delegate=self)
-        self.RetryCooldown = int(config.get("retry_interval", 3600))
+        self.RetryCooldown = int(config.get("retry_interval", 300))
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
         self.HistoryDB = history_db
         self.RecentTasks = {}	# name -> task
