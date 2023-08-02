@@ -633,6 +633,9 @@ class Manager(PyThread, Logged):
                 if task is None:
                     task = MoverTask(self.Config, filedesc)
                     self.RecentTasks[name] = task
+                else:
+                    retry_in = task.RetryAfter - time.time()
+                    self.debug("task found for:", name, "   retry in:", retry_in)
                 task.KeepUntil = time.time() + self.TaskKeepInterval
                 if task.RetryAfter is None or task.RetryAfter < time.time():
                     task.RetryAfter = time.time() + self.RetryCooldown
@@ -681,6 +684,6 @@ class Manager(PyThread, Logged):
     def run(self):
         while not self.Stop:
             self.sleep(60)
-            self.purge_memory
+            self.purge_memory()
                     
     
