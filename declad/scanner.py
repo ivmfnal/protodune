@@ -10,12 +10,12 @@ class Scanner(PyThread, Logged):
     MetaSuffix = ".json"
     DefaultInterval = 300
 
-    def __init__(self, receiver, config, interval=None):
+    def __init__(self, receiver, config):
         PyThread.__init__(self, daemon=True, name="Scanner")
         Logged.__init__(self, f"Scanner")
-        self.Interval = interval or self.DefaultInterval
         self.Receiver = receiver
         scan_config = config["scanner"]
+        self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Server, self.Location = scan_config["server"], scan_config["location"]
         self.XScanner = XRootDScanner(self.Server, scan_config)
         patterns = scan_config.get("filename_patterns") or scan_config.get("filename_pattern")
