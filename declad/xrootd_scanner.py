@@ -67,6 +67,8 @@ class XRootDScanner(Logged):
                         path = m["path"]
                         if t in "f-":
                             size = int(m["size"])
+                            if size == 0:
+                                self.debug("Zero file size in:\n   ", l)
                             name = path.rsplit("/",1)[-1]
                             path = path if path.startswith(location) else location + "/" + path
                             files.append(FileDescriptor(self.Server, location, path, name, size))
