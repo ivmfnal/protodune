@@ -32,6 +32,7 @@ class MoverTask(Task, Logged):
         self.EventDict = {}
         self.RetryAfter = None          # do not resubmit until this time
         self.KeepUntil = None           # keep in memory until this time
+        self.DefaultCategory = config.get("default_category")       # default metadata category for unexpeted uncategorized metadata attrs
         self.timestamp("created")
 
     def last_event(self, name=None):
@@ -110,9 +111,12 @@ class MoverTask(Task, Logged):
         
         for name, value in metadata.items():
             if '.' not in name:
-                if name not in self.CoreAttributes:
+                if name in self.CoreAttributes:
+                    name = self.CoreAttributes[name]
+                elif self.DefaultCategory is None:
                     raise ValueError("Unknown core metadata parameter: %s = %s for file %s" % (name, value, desc.Name))
-                name = self.CoreAttributes[name]
+                else:
+                    name = self.DefaultCategory + "." + name
             if self.LowecaseMetadataNames:
                 name = name.lower()
             out[name] = value
