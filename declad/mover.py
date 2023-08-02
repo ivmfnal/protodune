@@ -99,7 +99,13 @@ class MoverTask(Task, Logged):
         for k in ("start_time", "end_time"):
             t = metadata.pop(k, None)
             if t is not None:
-                t = datetime.fromisoformat(t).replace(tzinfo=timezone.utc).timestamp()
+                # check if time is epoch time integer, epoch time (float), or string
+                if isinstance(t,int):
+                    t = datetime.fromtimestamp(t).replace(tzinfo=timezone.utc).timestamp()
+                elif isinstance(t, float): 
+                    t = datetime.fromtimestamp(int(t)).replace(tzinfo=timezone.utc).timestamp()
+                else:   
+                    t = datetime.fromisoformat(t).replace(tzinfo=timezone.utc).timestamp()
                 out["core."+k] = t
         #
         # The rest must be either dimensions or known core attributes
