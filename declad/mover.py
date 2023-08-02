@@ -102,7 +102,7 @@ class MoverTask(Task, Logged):
                 if isinstance(t, str):
                     t = datetime.fromisoformat(t).replace(tzinfo=timezone.utc).timestamp()
                 elif not isinstance(t, (int, float)):
-                    raise ValueError("Unsupported value for %s: %s (%s)" % (k, t, type(t))
+                    raise ValueError("Unsupported value for %s: %s (%s)" % (k, t, type(t)))
                 out["core."+k] = t
         #
         # The rest must be either dimensions or known core attributes
