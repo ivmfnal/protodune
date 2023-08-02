@@ -23,7 +23,7 @@ class FileDescriptor(object):
         self.Relpath = relpath              # path relative to the location root, with leading slash removed
        
     def __str__(self):
-        return "%s:%s" % (self.Server, self.Path)
+        return "%s:%s:%s" % (self.Server, self.Path, self.Size)
         
     __repr__ = __str__
 
