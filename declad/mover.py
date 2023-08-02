@@ -579,7 +579,7 @@ class Manager(PyThread, Logged):
         max_movers = config.get("max_movers", 10)
         stagger = config.get("stagger", 0.5)
         self.TaskQueue = TaskQueue(max_movers, capacity=capacity, stagger=stagger, delegate=self)
-        self.RetryCooldown = int(config.get("retry_interval", 300))
+        self.RetryCooldown = int(config.get("retry_cooldown", 300))
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
         self.HistoryDB = history_db
         self.RecentTasks = {}	# name -> task
