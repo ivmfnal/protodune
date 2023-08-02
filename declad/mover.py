@@ -99,7 +99,10 @@ class MoverTask(Task, Logged):
         for k in ("start_time", "end_time"):
             t = metadata.pop(k, None)
             if t is not None:
-                t = datetime.fromisoformat(t).replace(tzinfo=timezone.utc).timestamp()
+                if isinstance(t, str):
+                    t = datetime.fromisoformat(t).replace(tzinfo=timezone.utc).timestamp()
+                elif not isinstance(t, (int, float)):
+                    raise ValueError("Unsupported value for %s: %s (%s)" % (k, t, type(t))
                 out["core."+k] = t
         #
         # The rest must be either dimensions or known core attributes
