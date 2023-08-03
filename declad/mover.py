@@ -181,7 +181,7 @@ class MoverTask(Task, Logged):
             scope = scope.replace('.', '/')
         return '%s/%s/%s/%s' % (scope, hstr[0:2], hstr[2:4], name)
         
-    def dest_file_size(self, server, path):
+    def get_file_size(self, server, path):
         scanner = XRootDScanner(server, self.Config["scanner"])
         return scanner.getFileSize(path)
 
@@ -239,7 +239,7 @@ class MoverTask(Task, Logged):
 
         if not isinstance(file_size, int) or file_size <= 0:
             return self.quarantine(f"Invalid file size in metadata: {file_size}")
-            
+        
         if file_size != self.FileDesc.Size:
             return self.failed(f"Scanned file size {self.FileDesc.Size} differs from metadata: {file_size}")
 
@@ -289,7 +289,7 @@ class MoverTask(Task, Logged):
         # check if the dest data file exists and has correct size
         #
         
-        try:    dest_size = self.dest_file_size(self.DestServer, dest_data_path)
+        try:    dest_size = self.get_file_size(self.DestServer, dest_data_path)
         except Exception as e:
             return self.failed(f"Can not get file size at the destination: {e}")
             
@@ -630,12 +630,10 @@ class Manager(PyThread, Logged):
             name = filedesc.Name
             if name not in in_progress:
                 task = self.RecentTasks.get(name)
-                if task is None:
-                    task = MoverTask(self.Config, filedesc)
-                    self.RecentTasks[name] = task
-                else:
-                    retry_in = task.RetryAfter - time.time()
-                    self.debug("task found for:", name, "   retry in:", retry_in)
+                if task is not None and task.RetryAfter > time.time():
+                    continue
+                task = MoverTask(self.Config, filedesc)     # retry the file: create new task with new FileDesc to reflect fresh scan results
+                self.RecentTasks[name] = task
                 task.KeepUntil = time.time() + self.TaskKeepInterval
                 if task.RetryAfter is None or task.RetryAfter < time.time():
                     task.RetryAfter = time.time() + self.RetryCooldown
