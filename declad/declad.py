@@ -80,13 +80,13 @@ if __name__ == "__main__":
     opts, args = getopt.getopt(sys.argv[1:], "dc:l:")
     opts = dict(opts)
     
-    debug = "-d" in opts
     config = Config(opts["-c"])
+    debug = ("-d" in opts) or config.get("debug_enabled", False)
 
     log_out = opts.get("-l", config.get("log"))
     
-    init_logger(log_out, error_out=config.get("error") or log_out, 
-        debug_out=config.get("debug_out") or log_out or ("-" if debug else None),
+    init_logger(log_out, error_out=config.get("error"), 
+        debug_out=config.get("debug"),
         debug_enabled=debug
         )
 
