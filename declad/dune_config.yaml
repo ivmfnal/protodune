@@ -1,6 +1,7 @@
 log: logs/declad.log
-debug_out: logs/declad.debug
+debug: logs/declad.debug
 error: logs/declad.errors
+debug_enabled: no           # default: no
 
 source_server: &src_server eospublic.cern.ch
 destination_server: *src_server
