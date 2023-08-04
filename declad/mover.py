@@ -657,7 +657,7 @@ class Manager(PyThread, Logged):
     def taskFailed(self, queue, task, exc_type, exc_value, tb):
         if exc_type is not None:
             error = "".join(traceback.format_exception(exc_type, exc_value, tb))
-            error = "\n" + taxtwrap.indent(error, "    ")
+            error = "\n" + textwrap.indent(error, "    ")
         else:
             # the error already logged by the task itself
             error = task.Error
