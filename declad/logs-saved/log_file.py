@@ -1,5 +1,5 @@
 import time, gzip, os.path
-import os
+import os, sys
 import datetime
 from pythreader import PyThread, synchronized, Primitive, TaskQueue, Task
 from threading import Timer, Thread
@@ -10,11 +10,16 @@ def make_timestamp(t=None):
     elif isinstance(t, (int, float)):
         t = datetime.datetime.fromtimestamp(t)
     return t.strftime("%m/%d/%Y %H:%M:%S") + ".%03d" % (t.microsecond//1000)
-                
-class LogStream(Primitive):
+
+class LogWriter(Primitive):
+    
+    def __init__(self, name=None):
+        Primitive.__init__(self, name=name)
+
+class LogStream(LogWriter):
 
     def __init__(self, stream, **ignore):
-        Primitive.__init__(self, name=f"LogStream({stream})")
+        LogWriter.__init__(self, name=f"LogStream({stream})")
         self.Stream = stream            # sys.stdout, sys.stderr
 
     @synchronized
@@ -33,7 +38,7 @@ class CompressTask(Task):
     def __init__(self, source):
         Task.__init__(self, name=f"Compress({source})")
         self.Source = source
-    
+
     def run(self):
         if os.path.isfile(self.Source):
             with open(self.Source, "rb") as inp:
@@ -43,15 +48,14 @@ class CompressTask(Task):
                         out.write(buf)
                         buf = inp.read(10000)
             os.remove(self.Source)
-        
+
 _CompressQueue = TaskQueue(5)
 
-class LogFile(Primitive):
-    
+class LogFile(LogWriter):
         def __init__(self, path, interval = '1d', keep = 10, compress_from = 1, add_timestamp=True, 
                         append=True, flush_interval=None, name=None):
             # interval = 'midnight' means roll over at midnight
-            Primitive.__init__(self, name=f"LogFile({path})")
+            LogWriter.__init__(self, name=f"LogFile({path})")
             self.File = None
             assert isinstance(path, str), "LogFile.__init__: path must be a string. Got %s %s instead" % (type(path), path) 
             self.Path = path
@@ -167,4 +171,24 @@ class LogFile(Primitive):
                 self.File.close()
                 self.File = None
 
+_LogWriters = {}
 
+def log_writer(output, **args):
+    global _LogWriters
+    if isinstance(output, LogWriter) or output is None:
+        return output
+    if output is sys.stdout:
+        output = "-"
+    elif output is sys.stderr:
+        output = "2>"
+    assert isinstance(output, str)
+    if output not in _LogWriters:
+        if output in ("-", "1>"):
+            _LogWriters["-"] = LogStream(sys.stdout)
+        elif output == "2>":
+            _LogWriters["2>"] = LogStream(sys.stderr)
+        else:
+            _LogWriters[output] = LogFile(output, **args)
+    writer = _LogWriters[output]
+    return writer
+                
