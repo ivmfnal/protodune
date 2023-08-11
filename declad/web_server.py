@@ -24,7 +24,7 @@ class Handler(WPHandler):
         return self.render_to_response("task_log.html", task=task)
 
     def history(self, request, relpath, **args):
-        transfers = self.App.finished_transfers(limit=1000)
+        transfers = self.App.finished_transfers(limit=10000)
         return self.render_to_response("history.html", transfers=transfers)
 
     def charts(self, req, rel_path, **args):
