@@ -68,6 +68,9 @@ class _HistoryDB(PyThread, Logged):
             c.execute("""
                 create index if not exists file_log_fn_event_inx on file_log(filename, status)
                 """)
+            c.execute("""
+                create index if not exists file_log_tend_inx on file_log(tend)
+                """)
 
     @synchronized
     def add_record(self, filename, size, tstart, tend, status, info):
@@ -120,13 +123,16 @@ class _HistoryDB(PyThread, Logged):
         
     @synchronized
     def historySince(self, t=0, limit=None):
+        #
+        # always returns records sorted by tend in reversed order
+        #
         with self.dbconn() as conn:
             c = conn.cursor()
-            limit = "" if limit is None else f"limit {limit}"
+            if limit:   limit = f"limit {limit}"
             c.execute(f"""select filename, tstart, tend, status, info, size 
                     from file_log 
                     where tend >= ?
-                    order by tend
+                    order by tend desc
                     {limit}
                     """, (t,)
             )

@@ -29,7 +29,7 @@ class DeclaD(PyThread, Logged):
         return self.MoverManager.current_transfers()
 
     def finished_transfers(self, limit=limit):
-        return list(self.HistoryDB.historySince(limit=limit))[::-1]
+        return list(self.HistoryDB.historySince(limit=limit))       # already reversed
 
     def quarantined(self):
         files, error = self.MoverManager.quarantined()		# file descriptors
