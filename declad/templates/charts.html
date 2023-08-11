@@ -13,7 +13,7 @@
 <p>
 <table class="formatting" style="width:100%">
     <tr>
-        <td style="width:100pt; white-space: nowrap">Chart range: <select id="chart_window" onchange="refresh_charts()" onload="updateCharts()">
+        <td style="width:100pt; white-space: nowrap">Chart range: <select id="chart_window" onchange="refresh_charts(true)" onload="updateCharts()">
                 <option value="hour" selected="selected">hour</option>
                 <option value="day">day</option>
                 <option value="week">week</option>
@@ -268,22 +268,26 @@
     var rate_chart = null;
     var rate_histogram = null;
     
-    function refresh_charts()
+    function refresh_charts(do_clear)
     {
+        do_clear = do_clear == null ? false : do_clear;
         var w = document.getElementById("chart_window").value;
         if( events_counts_chart != null )
         {
-            events_counts_chart.clear();
+            if( do_clear )
+                events_counts_chart.clear();
             events_counts_chart.request_data(w);
         }
         if( rate_chart != null )
         {
-            rate_chart.clear();
+            if( do_clear )
+                rate_chart.clear();
             rate_chart.request_data(w);
         }
         if( rate_histogram != null )
         {
-            rate_histogram.clear();
+            if( do_clear )
+                rate_histogram.clear();
             rate_histogram.request_data(w);
         }
     }
@@ -293,7 +297,7 @@
         events_counts_chart = new EventCounts("event_chart", "./event_counts");
         rate_chart = new Rates("rate_chart", "./transfer_rates");
         rate_histogram = new RateHistogram("rate_histogram", "./rate_histogram");
-        refresh_charts();
+        refresh_charts(do_clear=true);
     }
 
     initCharts();
