@@ -23,7 +23,7 @@ class FileDescriptor(object):
         self.Relpath = relpath              # path relative to the location root, with leading slash removed
        
     def __str__(self):
-        return "%s:%s" % (self.Server, self.Path)
+        return "%s:%s:%s" % (self.Server, self.Path, self.Size)
         
     __repr__ = __str__
 
@@ -45,7 +45,7 @@ class XRootDScanner(Logged):
         if status == 0:
             return file_descs
         else:
-            raise RuntimeError("Error: status=%s error=%s" % (status, error))
+            raise RuntimeError("Error scanning %s: status=%s error=%s" % (location, status, error))
 
     def listFilesAndDirs(self, location, timeout):
         lscommand = self.lsCommandTemplate.replace("$location", location)
@@ -67,6 +67,8 @@ class XRootDScanner(Logged):
                         path = m["path"]
                         if t in "f-":
                             size = int(m["size"])
+                            if size == 0:
+                                self.debug("Zero file size in:\n   ", l)
                             name = path.rsplit("/",1)[-1]
                             path = path if path.startswith(location) else location + "/" + path
                             files.append(FileDescriptor(self.Server, location, path, name, size))
@@ -92,7 +94,10 @@ class XRootDScanner(Logged):
                     t = m["type"]
                     path = m["path"]
                     if t in "f-" and path == file_path:
-                        return int(m["size"])
+                        size = int(m["size"])
+                        if size == 0:
+                            self.debug("Zero size in line:", l)
+                        return size
                     #else:
                     #    raise ScannerError(f"Unknown directory entry type '{t}' in: {l}")
                 elif "no such file or directory" in l.lower():

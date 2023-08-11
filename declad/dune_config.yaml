@@ -1,6 +1,8 @@
 log: logs/declad.log
-debug_out: logs/declad.debug
+debug: logs/declad.debug
 error: logs/declad.errors
+
+debug_enabled: no           # default: no
 
 source_server: &src_server eospublic.cern.ch
 destination_server: *src_server
@@ -12,12 +14,12 @@ scanner:
       -   "*.hdf5"
       -   "*.root"
       -   "*.test"
-    # meta_suffix:        .json           # optional
     ls_command_template:    "xrdfs $server ls -l $location"         # $server and $location will be replaced in run time
     # EOS: -rw-r--r-- np04data np-comp 1740481216 2023-03-20 11:24:27 /eos/experiment/neutplatform/protodune/rawdata/np04/dropbox/np04_hd_run020713_0000_dataflow0_datawriter_0_20230320T111641.hdf5
     parse_re:               ^(?P<type>[a-z-])[rwx-]+\s+[^ ]+\s+[^ ]+\s+(?P<size>\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<path>\S+)$
     timeout:                60      # seconds
 
+meta_suffix:        .json           # optional, default: .json
 quarantine_location: /eos/experiment/neutplatform/protodune/dune/test/dropbox/quarantine
 transfer_timeout: 180
 

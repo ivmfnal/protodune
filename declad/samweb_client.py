@@ -1,19 +1,6 @@
 from logs import Logged
 import requests, json
-from urllib.parse import quote
-
-
-"""
-import requests
-import logging
-
-# Debug logging
-logging.basicConfig()
-logging.getLogger().setLevel(logging.DEBUG)
-req_log = logging.getLogger('requests.packages.urllib3')
-req_log.setLevel(logging.DEBUG)
-req_log.propagate = True
-"""
+from urllib.parse import quote, urlencode
 
 class SAMDeclarationError(Exception):
     def __init__(self, message, body=None):
@@ -29,12 +16,25 @@ class SAMDeclarationError(Exception):
 class SAMWebClient(Logged):
     
     def __init__(self, url, cert, key):
+        Logged.__init__(self)
         self.URL = url
         self.Cert = cert
         self.Key = key
 
+    def get_file(self, name=None, id=None):
+        if name:
+            url = self.URL + "/files/name/" + quote(name) + "/metadata?format=json"
+        else:
+            url = self.URL + f"/files/id/{id}/metadata?format=json"
+        response = requests.get(url, headers={"Accept":"application/json"})
+        if response.status_code // 100 == 2:
+            return response.json()
+        else:
+            return None
+
     def declare(self, metadata, location=None):
         data = json.dumps(metadata, indent=1, sort_keys=True)
+        file_name = metadata["file_name"]
         response = requests.post(self.URL + "/files", data=data,
                         headers={"Content-Type":"application/json"},
 			cert=(self.Cert, self.Key)
@@ -45,44 +45,55 @@ class SAMWebClient(Logged):
         file_id = response.text.strip()
         
         if location:
-            response = requests.post(f"{self.URL}/{file_id}/locations", 
-                data={
-                    "add" : location
-                },
-                headers={
-                    "Content-Type" : "application/json",
-                    "SAM-Role": "*"
-                },
-                cert=(self.Cert, self.Key)
-            )
-            if response.status_code // 100 == 4:
-                raise SAMDeclarationError("SAM error adding file location", response.text)
-            response.raise_for_status()
+            self.add_location(location, id=file_id)
 
         return file_id
 
-    def add_location(self, file_id, location):
-        response = requests.post(f"{self.URL}/{file_id}/locations", 
-            data={
+    def add_location(self, location, name=None, id=None):
+        if name:
+            url = self.URL + "/files/name/" + quote(name) + "/locations"
+        else:
+            url = self.URL + f"/files/id/{id}/locations"
+        #self.debug("add_location: URL:", url)
+        data = urlencode({
                 "add" : location
-            },
+            }).encode("utf-8")
+        headers={
+                "Accept" : "application/json",
+                "SAM-Role": "*",
+                "From": "dunepro@dunedecladgpvm01.fnal.gov",
+                "Content-type": "application/x-www-form-urlencoded"
+            }
+        #self.debug("add_location request:")
+        #self.debug("  url:", url)
+        #self.debug("  headers:", headers)
+        #self.debug("  data:", data)
+        response = requests.post(url, data=data, headers=headers,
+            cert=(self.Cert, self.Key)
+        )
+        #self.debug("response:", str(response))
+        #self.debug(f"  text:[{response.text}]")
+        if response.status_code // 100 == 4:
+            raise SAMDeclarationError("SAM error adding file location:", response.text)
+        response.raise_for_status()
+        
+    def locate_file(self, name=None, id=None):
+        if name:
+            url = self.URL + "/files/name/" + quote(name) + "/locations"
+        else:
+            url = self.URL + f"/files/id/{id}/locations"
+        response = requests.get(url,
             headers={
-                "Content-Type" : "application/json",
-                "SAM-Role": "*"
+                "Accept" : "application/json",
+                "SAM-Role": "default"
             },
             cert=(self.Cert, self.Key)
         )
-        if response.status_code // 100 == 4:
-            raise SAMDeclarationError("SAM error adding file location", response.text)
-        response.raise_for_status()
-
-    def get_file(self, name):
-        url = self.URL + "/files/name/" + quote(name) + "/metadata?format=json"
-        response = requests.get(url, headers={"Accept":"application/json"})
-        if response.status_code // 100 == 2:
-            return response.json()
-        else:
-            return None
+        txt = response.text
+        #self.debug("locate_file: response:", str(response))
+        #self.debug("    reponse text:", txt)
+        data = response.json()
+        return [l.get('location') or l['full_path'] for l in data]
 
     def file_exists(self, name):
         return self.get_file(name) is not None

@@ -28,7 +28,6 @@ replication_targets:            # RSEs to create replication rule to
     - FNAL_DCACHE
     - CERN_CASTOR
 
-retry_interval: 3600            # default 3600
 transfer_timeout: 120           # default 120
 keep_interval:  86400           # default 24 hours
 
