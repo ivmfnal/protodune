@@ -71,6 +71,10 @@
             var url = this.URL + "?since_t=-"+w;
             var request = XMLRequest(url, this);
         }
+        this.clear = function()
+        {
+            Plotly.purge(this.Element);
+        }
         this.data_received = function(data)
         {
             document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
@@ -124,6 +128,10 @@
             var request = XMLRequest(url, this);
         }
         
+        this.clear = function()
+        {
+            Plotly.purge(this.Element);
+        }
         this.data_received = function(data)
         {
             document.getElementById("refreshed_at").innerHTML = (new Date()).toUTCString();
@@ -197,6 +205,10 @@
             "done": "#4C4",
             "failed": "#C44"
         };
+        this.clear = function()
+        {
+            Plotly.purge(this.Element);
+        }
         this.request_data = function (scale) {
             var w = scales[scale].window;
             var bin = scales[scale].bin;
@@ -260,11 +272,20 @@
     {
         var w = document.getElementById("chart_window").value;
         if( events_counts_chart != null )
+        {
+            events_counts_chart.clear();
             events_counts_chart.request_data(w);
+        }
         if( rate_chart != null )
+        {
+            rate_chart.clear();
             rate_chart.request_data(w);
+        }
         if( rate_histogram != null )
+        {
+            rate_histogram.clear();
             rate_histogram.request_data(w);
+        }
     }
     
     function initCharts()
