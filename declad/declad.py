@@ -28,7 +28,7 @@ class DeclaD(PyThread, Logged):
     def current_transfers(self):
         return self.MoverManager.current_transfers()
 
-    def finished_transfers(self, limit=limit):
+    def finished_transfers(self, limit=None):
         return list(self.HistoryDB.historySince(limit=limit))       # already reversed
 
     def quarantined(self):
