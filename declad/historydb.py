@@ -115,18 +115,21 @@ class _HistoryDB(PyThread, Logged):
         return out
         
     @synchronized
-    def historySince(self, t=0):
+    def historySince(self, t=0, limit=None):
         with self.dbconn() as conn:
             c = conn.cursor()
-            c.execute("""select filename, tstart, tend, status, info, size 
+            limit = "" if limit is None else f"limit {limit}"
+            c.execute(f"""select filename, tstart, tend, status, info, size 
                     from file_log 
                     where tend >= ?
-                    order by tend""", (t,)
+                    order by tend
+                    {limit}
+                    """, (t,)
             )
             return [_Record(*tup) for tup in c.fetchall()]
 
     @synchronized
-    def getRecords(self, status, since_t = None):
+    def getRecords(self, status, since_t=None):
         since_t = since_t or 0
         with self.dbconn() as conn:
             c = conn.cursor()

@@ -24,7 +24,7 @@ class Handler(WPHandler):
         return self.render_to_response("task_log.html", task=task)
 
     def history(self, request, relpath, **args):
-        transfers = self.App.finished_transfers()
+        transfers = self.App.finished_transfers(limit=1000)
         return self.render_to_response("history.html", transfers=transfers)
 
     def charts(self, req, rel_path, **args):
@@ -221,8 +221,8 @@ class App(WPApp):
     def current_transfers(self):
         return self.Manager.current_transfers()
         
-    def finished_transfers(self):
-        return self.Manager.finished_transfers()
+    def finished_transfers(self, limit=None):
+        return self.Manager.finished_transfers(limit=limit)
         
     def quarantined(self):
         return self.Manager.quarantined()
