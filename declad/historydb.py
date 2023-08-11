@@ -162,6 +162,20 @@ class _HistoryDB(PyThread, Logged):
     def eventCounts(self, bin, since_t = 0):
         with self.dbconn() as conn:
             c = conn.cursor()
+            c.execute("""select status, tend
+                    from file_log
+                    where tend >= ?""", (since_t,))
+            counts = {}     # (status, bin) -> count
+            for status, tend in c.fetchall():
+                tend = int(tend/bin)*bin
+                key = (status, tend)
+                counts[key] = counts.get(key, 0) + 1
+            return [(key[0], key[1], count) for key, count in sorted(counts.items())]
+
+    @synchronized
+    def eventCounts____(self, bin, since_t = 0):
+        with self.dbconn() as conn:
+            c = conn.cursor()
             c.execute("""select status, round(tend/?)*? as tt, count(*)
                     from file_log
                     where tend >= ?
