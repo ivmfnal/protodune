@@ -585,7 +585,8 @@ class Manager(PyThread, Logged):
         self.RetryCooldown = int(config.get("retry_cooldown", 300))
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
         self.HistoryDB = history_db
-        self.RecentTasks = {}	# name -> task
+        self.NextRetry = {}	                # path -> t
+        self.RecentTasks = {}               # name -> task
         self.Stop = False
 
     def task(self, name):
@@ -627,22 +628,21 @@ class Manager(PyThread, Logged):
         #self.RetryAfter = dict((name, t) for name, t in self.RetryAfter.items() if t > time.time())
         #self.Delayed = dict((name, t) for name, t in self.Delayed.items() if t > time.time())
         waiting, active = self.TaskQueue.tasks()
-        in_progress = set(t.name for t in waiting + active)
+        in_progress = set(t.FileDesc.Path for t in waiting + active)
+        now = time.time()
+        self.NextRetry = {path:t for path, t in self.NextRetry.items() if t > now}
         nqueued = 0
         for name, filedesc in files_dict.items():
+            path = filedesc.Path
             name = filedesc.Name
-            if name not in in_progress:
-                task = self.RecentTasks.get(name)
-                if task is not None and task.RetryAfter > time.time():
-                    continue
+            if path not in in_progress and path not in self.NextRetry:
                 task = MoverTask(self.Config, filedesc)     # retry the file: create new task with new FileDesc to reflect fresh scan results
+                task.KeepUntil = now + self.TaskKeepInterval
                 self.RecentTasks[name] = task
-                task.KeepUntil = time.time() + self.TaskKeepInterval
-                if task.RetryAfter is None or task.RetryAfter < time.time():
-                    task.RetryAfter = time.time() + self.RetryCooldown
-                    self.TaskQueue.addTask(task)
-                    task.timestamp("queued")
-                    nqueued += 1
+                self.NextRetry[path] = now + self.RetryCooldown
+                self.TaskQueue.addTask(task)
+                task.timestamp("queued")
+                nqueued += 1
         self.log("%d new files queued out of %d found by the scanner" % (nqueued, len(files_dict)))
 
     @synchronized
