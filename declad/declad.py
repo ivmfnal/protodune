@@ -1,5 +1,6 @@
 from mover import Manager
 from scanner import Scanner
+from local_scanner import LocalScanner
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from config import Config
 from logs import Logged, init as init_logger
@@ -15,7 +16,13 @@ class DeclaD(PyThread, Logged):
         self.Config = config
         self.HistoryDB = history_db
         self.MoverManager = Manager(config, self.HistoryDB)
-        self.Scanner = Scanner(self.MoverManager, config)
+        scanner_type = config["scanner"].get("type")
+        if scanner_type == "local":
+            self.Scanner = LocalScanner(self.MoverManager, config)
+        elif scanner_type == "xrootd":
+            self.Scanner = Scanner(self.MoverManager, config)
+        else:
+            raise ValueError(f"Unknown or unspecified scanner type: {scanner_type}")
         self.Stop = False
 
     def run(self):
