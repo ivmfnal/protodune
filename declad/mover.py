@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 class MoverTask(Task, Logged):
     
     RequiredMetadata = ["checksum", "file_size", "runs"]
+    DefaultMetaSuffix = ".json"
     
     def __init__(self, config, filedesc):
         Task.__init__(self, filedesc)
@@ -197,12 +198,11 @@ class MoverTask(Task, Logged):
         self.debug("FileDescritor: filename, path, size:", self.FileDesc.Name, self.FileDesc.Path, self.FileDesc.Size)
         assert path.startswith("/")
 
-
         #
         # Get metadata and parse
         #
         
-        meta_suffix = self.Config.get("meta_suffix", ".json")
+        meta_suffix = self.Config.get("meta_suffix", self.DefaultMetaSuffix)
         meta_tmp = self.Config.get("temp_dir", "/tmp") + "/" + self.FileDesc.Name + meta_suffix
         meta_path = path + meta_suffix
         download_cmd = self.Config["download_command_template"] \

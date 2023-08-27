@@ -8,7 +8,8 @@ TAR_FILE = $(TAR_DIR)/$(PRODUCT)_$(VERSION).tar
 
 
 FILES = config.py mover.py samweb_client.py tools.py web_server.py lfn2pfn.py \
-	declad.py historydb.py metacat_client.py rucio_client.py scanner.py xrootd_scanner.py graphite_interface.py
+	declad.py historydb.py metacat_client.py rucio_client.py scanner.py xrootd_scanner.py graphite_interface.py \
+	file_descriptor.py
 
 
 # - not needed as we are moving EOS to EOS using xrootd fts3client.py context.py request.py

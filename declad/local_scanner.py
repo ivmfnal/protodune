@@ -1,11 +1,12 @@
 from pythreader import PyThread
 from tools import runCommand
-import time, fnmatch, traceback
+import time, fnmatch, traceback, re
 from logs import Logged
+from file_descriptor import FileDescriptor
 
 class LocalScanner(PyThread, Logged):
 
-    MetaSuffix = ".json"
+    DefaultMetaSuffix = ".json"
     DefaultInterval = 300
 
     # Linux ls -l pattern
@@ -24,12 +25,14 @@ class LocalScanner(PyThread, Logged):
         if not patterns:
             raise ValueError("Filename patterns (filename_patterns) not found in the config file")
         self.FilenamePatterns = patterns if isinstance(patterns, list) else [patterns]
-        self.MetaSuffix = config.get("meta_suffix", ".json")
+        self.MetaSuffix = config.get("meta_suffix", self.DefaultMetaSuffix)
         self.MetadataPatterns = [pattern + self.MetaSuffix for pattern in self.FilenamePatterns]
         self.Stop = False
+        self.Server = None
         
-    def do_ls(self, location):
+    def do_ls(self, location, timeout=None):
         lscommand = self.lsCommandTemplate.replace("$location", location)
+        #print("lscommand:", lscommand)
         files = []
         dirs = []
         error = ""
@@ -79,6 +82,8 @@ class LocalScanner(PyThread, Logged):
                 self.log("ls error:", error)
             else:
                 self.debug("scanner returned %d file descriptors" % (len(files,)))
+                #for f in files:
+                #    print(f)
 
                 out_files = {}
 
