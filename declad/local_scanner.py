@@ -54,7 +54,7 @@ class LocalScanner(PyThread, Logged):
                         path = m["path"]
                         orig_path = path = path if path.startswith(location) else location + "/" + path
                         if self.ReplaceLocation:
-                            path = self.ReplaceLocation + path[len(location:)]
+                            path = self.ReplaceLocation + path[len(location):]
                         name = path.rsplit("/",1)[-1]
                         if t in "f-":
                             size = int(m["size"])
