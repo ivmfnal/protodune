@@ -10,7 +10,7 @@ class FileDescriptor(object):
         relpath = path[len(location):]
         while relpath and relpath[0] == "/":
             relpath = relpath[1:]
-        self.Relpath = relpath              # path relative to the location root, with leading slash removed
+        self.RelPath = relpath              # path relative to the location root, with leading slash removed
 
     def path(self, location):
         return location + "/" + self.RelPath
