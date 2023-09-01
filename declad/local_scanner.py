@@ -10,6 +10,9 @@ class LocalScanner(PyThread, Logged):
     DefaultInterval = 300
 
     # Linux ls -l pattern
+    #
+    # Linux ls -l output line:
+    # -rw-r--r-- 1 ivm3 ivm3 1228 Mar 22 16:52 /home/ivm3/token
     DefaultParseRE = r"(?P<type>[a-z-])\S+\s+\d+\s+\S+\s+\S+\s+(?P<size>\d+)\s+\S+\s+\d+\s+\S+\s+(?P<path>\S+)$"
 
     def __init__(self, receiver, config):

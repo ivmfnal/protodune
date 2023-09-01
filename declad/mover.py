@@ -596,7 +596,7 @@ class Manager(PyThread, Logged):
         self.Config = config
         capacity = None             # config.get("queue_capacity") possible deadlock otherwise
         max_movers = config.get("max_movers", 10)
-        stagger = config.get("stagger", 0.5)
+        stagger = config.get("stagger", 0.2)
         self.TaskQueue = TaskQueue(max_movers, capacity=capacity, stagger=stagger, delegate=self)
         self.RetryCooldown = int(config.get("retry_cooldown", 300))
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
@@ -635,7 +635,7 @@ class Manager(PyThread, Logged):
         return active + waiting
 
     def low_water(self):
-        return len(self.current_transfers()) < self.LowWaterMark
+        return len(self.self.TaskQueue) < self.LowWaterMark
 
     @synchronized
     def add_files(self, files_dict):
