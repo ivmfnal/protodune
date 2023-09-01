@@ -517,20 +517,7 @@ class MoverTask(Task, Logged):
             ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
             if ret:
                 return self.failed("Remove source ata failed: %s" % (output,))
-            
-            #
-            # see if the file was actually removed
-            #
-            try:    
-                source_data_size = self.get_file_size(self.SourceServer, path)
-            except Exception as e:
-                self.debug(f"Error checking input data size after deletion: {e}")
-            else:
-                if source_data_size is None:
-                    self.debug("data file removed successfully")
-                else:
-                    self.log("data size was not removed. size:", source_data_size)
-            
+
         else:
             self.debug("would remove source data file:", rmcommand)
 

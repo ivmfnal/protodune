@@ -62,6 +62,7 @@ class XRootDScanner(Logged):
         
     def getFileSize(self, file_path):
         lscommand = self.lsCommandTemplate.replace("$location", file_path)
+        self.debug("getFileSize: lscommand:", lscommand)
         status, out = runCommand(lscommand, self.OperationTimeout, self.debug)
         #if status:
         #    raise ScannerError(f"Error in {lscommand}: {out}")
