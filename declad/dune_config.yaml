@@ -1,67 +1,65 @@
-log: logs/declad.log
-debug: logs/declad.debug
-error: logs/declad.errors
-
-debug_enabled: no           # default: no
-
-source_server: &src_server eospublic.cern.ch
-destination_server: *src_server
-
 scanner:
-    server: *src_server
-    location:   /eos/experiment/neutplatform/protodune/dune/test/dropbox
-    filename_patterns:
-      -   "*.hdf5"
-      -   "*.root"
-      -   "*.test"
-    ls_command_template:    "xrdfs $server ls -l $location"         # $server and $location will be replaced in run time
-    # EOS: -rw-r--r-- np04data np-comp 1740481216 2023-03-20 11:24:27 /eos/experiment/neutplatform/protodune/rawdata/np04/dropbox/np04_hd_run020713_0000_dataflow0_datawriter_0_20230320T111641.hdf5
-    parse_re:               ^(?P<type>[a-z-])[rwx-]+\s+[^ ]+\s+[^ ]+\s+(?P<size>\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<path>\S+)$
-    timeout:                60      # seconds
+    type: local
+    server: fndca1.fnal.gov
+    location:           /pnfs/dune/scratch/dunepro/ingest/dropbox/anutau
+    filename_pattern:   "*.root"
+    ls_command_template:    find $location -type f -exec stat -c "- %s {}" {} \;
+    parse_re:               ^(?P<type>[df-])\s+(?P<size>\d+)\s+(?P<path>\S+)$
+    timeout:                600      # seconds
+    interval:    60
 
-meta_suffix:        .json           # optional, default: .json
-quarantine_location: /eos/experiment/neutplatform/protodune/dune/test/dropbox/quarantine
-transfer_timeout: 180
+low_water_mark: 5
 
-max_movers:     100                      # default 10
-    
-metacat_dataset:    dc4:dc4                # namespace:name
+meta_suffix:        .json               # optional
+max_movers: 10                          # default 10
+retry_cooldown: 180                     # file retry interval
+keep_interval: 7200                    # interval to keep file processing log in memory
+transfer_timeout: 300           # default 120
 
-destination_root_path:  /eos/experiment/neutplatform/protodune/dune         # absolute
+rel_path_function: hash
+log: logs/declad.log
 
-create_dirs_command_template:   "xrdfs $server mkdir -p $path"
-copy_command_template:          "xrdcp --force --silent --tpc first $src_url $dst_url"
-download_command_template:      "xrdcp --force --silent root://$server/$src_path $dst_path"
-delete_command_template:        "xrdfs $server rm $path"
-
-#lfn2pfn: hash
-sam_location_template: eos:/top/path/$dst_rel_path
+metacat_dataset:    dune:all            # namespace:name
+default_category:   misc                # default metadata category for unexpected uncategorized metadata attrs  
 
 rucio:
     declare_to_rucio:   yes
-    drop_rse:   DUNE_CERN_EOS            # Rucio name of the RSE where the data arrives being copied from the dropbox
+    drop_rse:   DUNE_US_FNAL_DISK_STAGE            # Rucio name of the RSE where the data arrives being copied from the dropbox
     target_rses:                # RSEs to create replication rule to
-    - FNAL_DCACHE_TEST
+    - FNAL_DCACHE
     dataset_did_template: "%(run_type)s:%(run_type)s_%(run_number)s"          # Python %-operation template, applied to the file metadata dict
 
-metacat_url:     https://metacat.fnal.gov:9443/dune_meta_demo/app
-samweb_url:     https://samweb.fnal.gov:8483/sam/dune/api           # optionel. If omited, do not declare to SAM
+# the following are used for xrtood transfers/downloads, etc. paths are in xrtood space
+source_server:        fndca1.fnal.gov                 
+destination_server:   fndca1.fnal.gov
+source_root_path:       /pnfs/fnal.gov/usr/dune/scratch/dunepro/ingest/dropbox/anutau
+destination_root_path:  /pnfs/fnal.gov/usr/dune/persistent/staging          
+
+delete_command_template:        "xrdfs $server rm $path"
+create_dirs_command_template:   "xrdfs $server mkdir -p $path"
+copy_command_template:          "xrdcp --force --silent --debug 2 --tpc delegate first $src_url $dst_url"
+download_command_template:      "xrdcp --force --silent root://$server/$src_path $dst_path"
+quarantine_location:            /dune/scratch/dunepro/ingest/quarantine
+
+metacat_url:    https://metacat.fnal.gov:9443/dune_meta_prod/app
+rucio_url:      https://dune-rucio.fnal.gov
+
+sam_location_template: dcache:/pnfs/dune/persistent/staging/$dst_rel_dir
 
 samweb:
     user:    dunepro
     url:     https://samweb.fnal.gov:8483/sam/dune/api
-    cert:    /etc/grid-security/fts/fts-protodune-declad7-cert.pem
-    key:     /etc/grid-security/fts/fts-protodune-declad7-key.pem 
-
+    cert:    /opt/dunepro/dunepro.Production.proxy 
+    key:     /opt/dunepro/dunepro.Production.proxy
 
 web_gui:
-        port:   8089
-        site_title:  Declaration Daemon
-        prefix: /declad7
-
+    port: 8080
+    site_title: Web site title
+    prefix: /declad_demo
+    
 graphite:
-        host: filer-carbon.cern.ch
+        host: fifemondata.fnal.gov
         port: 2004
-        namespace: fts.protodune.protodune-declad7-declad 
+        namespace: fts.dune.acd-srv03.fnal.gov 
         interval: 10
         bin: 60
