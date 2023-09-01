@@ -96,6 +96,7 @@ class LocalScanner(PyThread, Logged):
                     out_files = {}
 
                     for desc in files:
+                        self.debug("file:", desc.Name)
                         if any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns):
                             meta_name = desc.Name + self.MetaSuffix
                             if meta_name in metadata_files:
