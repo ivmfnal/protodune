@@ -24,6 +24,11 @@ class MoverTask(Task, Logged):
         self.QuarantineLocation = config.get("quarantine_location")
         self.SourceServer = config["source_server"]
         self.DestServer = config.get("destination_server") or self.SourceServer
+        
+        # source and destination paths in xrootd namespace
+        self.SrcRootPath = config["source_root_path"]
+        self.DstRootPath = config["destination_root_path"]
+        
         self.TransferTimeout = config.get("transfer_timeout", 120)
         self.LowecaseMetadataNames = config.get("lowercase_meta_names", False)
         self.Error = None
@@ -194,9 +199,8 @@ class MoverTask(Task, Logged):
         self.TaskStarted = time.time()
         #self.debug("time:", time.time())
         
-        filename, path = self.FileDesc.Name, self.FileDesc.Path
-        self.debug("FileDescritor: filename, path, size:", self.FileDesc.Name, self.FileDesc.Path, self.FileDesc.Size)
-        assert path.startswith("/")
+        filename, relpath = self.FileDesc.Name, self.FileDesc.RelPath
+        self.debug("FileDescritor:", self.FileDesc)
 
         #
         # Get metadata and parse
@@ -204,7 +208,7 @@ class MoverTask(Task, Logged):
         
         meta_suffix = self.Config.get("meta_suffix", self.DefaultMetaSuffix)
         meta_tmp = self.Config.get("temp_dir", "/tmp") + "/" + self.FileDesc.Name + meta_suffix
-        meta_path = path + meta_suffix
+        meta_path = self.FileDesc.path(self.SrcRootPath) + meta_suffix
         download_cmd = self.Config["download_command_template"] \
             .replace("$server", self.SourceServer) \
             .replace("$src_path", meta_path) \
@@ -244,7 +248,7 @@ class MoverTask(Task, Logged):
             return self.failed(f"Scanned file size {self.FileDesc.Size} differs from metadata: {file_size}")
 
         #
-        # Cibvert to MetaCat format
+        # Convert to MetaCat format
         #
         try:
             metacat_meta = self.metacat_metadata(self.FileDesc, metadata)   # massage meta if needed
@@ -266,10 +270,10 @@ class MoverTask(Task, Logged):
         
 
         # EOS expects URL to have double slashes: root://host:port//path/to/file
-        src_data_path = path
-        data_src_url = "root://" + self.SourceServer + "/" + path
+        src_data_path = self.FileDesc.path(self.SrcRootPath)
         rel_path_function = self.Config.get("rel_path_function")
-        dest_root_path = self.Config["destination_root_path"]
+        dest_root_path = self.DstRootPath
+        self.debug("")
         if rel_path_function == "hash":
             dest_rel_path = self.destination_rel_path(file_scope, self.FileDesc, metacat_meta)
         elif rel_path_function == "template":
@@ -281,9 +285,10 @@ class MoverTask(Task, Logged):
             dest_rel_path = self.Config["rel_path_pattern"] % meta_dict
         else:
             raise ValueError(f"Unknown relative path function {rel_path_function}. Accepted: hash or template")
-        dest_dir_abs_path = dest_root_path + "/" + dest_rel_path.rsplit("/", 1)[0]  
         dest_data_path = dest_root_path + "/" + dest_rel_path
+        dest_dir_abs_path = dest_data_path.rsplit("/", 1)[0]  
         data_dst_url = "root://" + self.DestServer + "/" + dest_data_path     
+        data_src_url = "root://" + self.SourceServer + "/" + src_data_path
         
         #
         # check if the dest data file exists and has correct size
@@ -514,7 +519,7 @@ class MoverTask(Task, Logged):
 
         rmcommand = self.Config["delete_command_template"]	\
             .replace("$server", self.SourceServer)	\
-            .replace("$path", path)
+            .replace("$path", src_data_path)
         if do_remove_sources:
             ret, output = runCommand(rmcommand, self.TransferTimeout, self.debug)
             if ret:
@@ -549,7 +554,8 @@ class MoverTask(Task, Logged):
         if self.QuarantineLocation:
 
             # quarantine the metadata file
-            meta_path = self.FileDesc.Path + self.MetaSuffix
+            src_path = self.FileDesc.path(self.SrcRootPath)
+            meta_path = src_path + self.MetaSuffix
             qmeta_path = self.QuarantineLocation + "/" + self.FileDesc.Name + self.MetaSuffix
             cmd = "xrdfs %s mv %s %s" % (
                 self.FileDesc.Server,
@@ -560,7 +566,7 @@ class MoverTask(Task, Logged):
                 return self.failed("Quarantine for metadata file %s failed: %s" % (self.FileDesc.Name + self.MetaSuffix, output))
 
             # quarantine the data file
-            path = self.FileDesc.Path
+            path = src_path
             qpath = self.QuarantineLocation + "/" + self.FileDesc.Name
             cmd = "xrdfs %s mv %s %s" % (
                 self.FileDesc.Server,
@@ -591,7 +597,7 @@ class Manager(PyThread, Logged):
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
         self.LowWaterMark = config.get("low_water_mark", self.DEFAULT_LOW_WATER_MARK)
         self.HistoryDB = history_db
-        self.NextRetry = {}	                # path -> t
+        self.NextRetry = {}	                # name -> t
         self.RecentTasks = {}               # name -> task
         self.Stop = False
 
@@ -637,18 +643,17 @@ class Manager(PyThread, Logged):
         #self.RetryAfter = dict((name, t) for name, t in self.RetryAfter.items() if t > time.time())
         #self.Delayed = dict((name, t) for name, t in self.Delayed.items() if t > time.time())
         waiting, active = self.TaskQueue.tasks()
-        in_progress = set(t.FileDesc.Path for t in waiting + active)
+        in_progress = set(t.FileDesc.Name for t in waiting + active)
         now = time.time()
-        self.NextRetry = {path:t for path, t in self.NextRetry.items() if t > now}
+        self.NextRetry = {name:t for name, t in self.NextRetry.items() if t > now}
         nqueued = 0
         for name, filedesc in files_dict.items():
-            path = filedesc.Path
             name = filedesc.Name
-            if path not in in_progress and path not in self.NextRetry:
+            if name not in in_progress and name not in self.NextRetry:
                 task = MoverTask(self.Config, filedesc)     # retry the file: create new task with new FileDesc to reflect fresh scan results
                 task.KeepUntil = now + self.TaskKeepInterval
                 self.RecentTasks[name] = task
-                self.NextRetry[path] = now + self.RetryCooldown
+                self.NextRetry[name] = now + self.RetryCooldown
                 self.TaskQueue.addTask(task)
                 task.timestamp("queued")
                 nqueued += 1
