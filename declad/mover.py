@@ -635,7 +635,7 @@ class Manager(PyThread, Logged):
         return active + waiting
 
     def low_water(self):
-        return len(self.self.TaskQueue) < self.LowWaterMark
+        return len(self.TaskQueue) < self.LowWaterMark
 
     @synchronized
     def add_files(self, files_dict):
