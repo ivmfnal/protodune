@@ -60,8 +60,7 @@ class LocalScanner(PyThread, Logged):
                             size = int(m["size"])
                             if size == 0:
                                 self.debug("Zero file size in:\n   ", l)
-                            files.append(FileDescriptor(self.Server, location, path, name, size,
-                                orig_path=orig_path))
+                            files.append(FileDescriptor(self.Server, location, path, name, size))
                         elif t == "d": 
                             dirs.append(path)
                         else:
