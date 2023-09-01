@@ -98,12 +98,14 @@ class LocalScanner(PyThread, Logged):
                     for desc in files:
                         self.debug("file:", desc.Name)
                         if any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns):
+                            self.debug("matches data file pattern")
                             meta_name = desc.Name + self.MetaSuffix
                             if meta_name in metadata_files:
                                 out_files[desc.Name] = desc
                             else:
                                 data_files[desc.Name] = desc
                         elif any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.MetadataPatterns) and desc.Size > 0:
+                            self.debug("matches metadata file pattern")
                             data_name = desc.Name[:-len(self.MetaSuffix)]
                             data_desc = data_files.get(data_name)
                             if data_desc is not None:
