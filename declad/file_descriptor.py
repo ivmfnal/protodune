@@ -8,7 +8,6 @@ class FileDescriptor(object):
         self.Size = size
         self.OrigPath = orig_path or path
 
-        assert path.startswith(location)
         relpath = path[len(location):]
         while relpath and relpath[0] == "/":
             relpath = relpath[1:]
