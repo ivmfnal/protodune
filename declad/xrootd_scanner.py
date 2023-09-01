@@ -61,7 +61,7 @@ class XRootDScanner(Logged):
         return status, error, files, dirs
         
     def getFileSize(self, file_path):
-        stat_command = "xrdfs {self.Server} stat {file_path}"
+        stat_command = f"xrdfs {self.Server} stat {file_path}"
         self.debug("getFileSize: stat command:", stat_command)
         status, out = runCommand(stat_command, self.OperationTimeout, self.debug)
         #if status:
