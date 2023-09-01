@@ -61,9 +61,9 @@ class XRootDScanner(Logged):
         return status, error, files, dirs
         
     def getFileSize(self, file_path):
-        lscommand = self.lsCommandTemplate.replace("$location", file_path)
-        self.debug("getFileSize: lscommand:", lscommand)
-        status, out = runCommand(lscommand, self.OperationTimeout, self.debug)
+        stat_command = "xrdfs {self.Server} stat {file_path}"
+        self.debug("getFileSize: stat command:", stat_command)
+        status, out = runCommand(stat_command, self.OperationTimeout, self.debug)
         #if status:
         #    raise ScannerError(f"Error in {lscommand}: {out}")
         lines = [x.strip() for x in out.split("\n")]
@@ -71,17 +71,9 @@ class XRootDScanner(Logged):
             l = l.strip()
             #self.debug("line:", l)
             if l:
-                m = self.ParseRE.match(l)
-                if m:
-                    t = m["type"]
-                    path = m["path"]
-                    if t in "f-" and path == file_path:
-                        size = int(m["size"])
-                        if size == 0:
-                            self.debug("Zero size in line:", l)
-                        return size
-                    #else:
-                    #    raise ScannerError(f"Unknown directory entry type '{t}' in: {l}")
+                words = l.split()
+                if len(words) == 2 and words[0] == "Size:":
+                    return int(words[1])
                 elif "no such file or directory" in l.lower():
-                    break
+                    return None
         return None

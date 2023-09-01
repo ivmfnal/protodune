@@ -1,6 +1,6 @@
 from pythreader import PyThread
 from tools import runCommand
-import time, fnmatch, traceback, re
+import time, fnmatch, traceback, re, stat, os.path
 from logs import Logged
 from file_descriptor import FileDescriptor
 
