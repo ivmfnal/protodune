@@ -289,7 +289,9 @@ class MoverTask(Task, Logged):
         # check if the dest data file exists and has correct size
         #
         
-        try:    dest_size = self.get_file_size(self.DestServer, dest_data_path)
+        try:    
+            dest_size = self.get_file_size(self.DestServer, dest_data_path)
+            self.debug("Destination data file size:", dest_size)
         except Exception as e:
             return self.failed(f"Can not get file size at the destination: {e}")
             
