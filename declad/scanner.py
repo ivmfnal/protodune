@@ -51,7 +51,7 @@ class Scanner(PyThread, Logged):
             for desc in files:
                 if any(fnmatch.fnmatch(desc.Name, pattern) for pattern in self.FilenamePatterns):
                     meta_name = desc.Name + self.MetaSuffix
-                    if meta_name in metadata_files:
+                    if desc.Name in metadata_files:
                         out_files[desc.Name] = desc
                     else:
                         data_files[desc.Name] = desc
