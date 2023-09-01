@@ -1,11 +1,12 @@
 class FileDescriptor(object):
 
-    def __init__(self, server, location, path, name, size):
+    def __init__(self, server, location, path, name, size, orig_path=None):
         self.Server = server
         self.Location = location
         self.Path = path
         self.Name = name
         self.Size = size
+        self.OrigPath = orig_path or path
 
         assert path.startswith(location)
         relpath = path[len(location):]

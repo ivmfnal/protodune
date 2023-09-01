@@ -22,6 +22,7 @@ class LocalScanner(PyThread, Logged):
         scan_config = config["scanner"]
         self.Interval = scan_config.get("interval", self.DefaultInterval)
         self.Location = scan_config["location"]
+        self.ReplaceLocation = scan_config.get("replace_location")
         self.lsCommandTemplate = scan_config["ls_command_template"]            
         self.ParseRE = re.compile(scan_config.get("parse_re", self.DefaultParseRE))
         patterns = scan_config.get("filename_patterns") or scan_config.get("filename_pattern")
@@ -51,13 +52,16 @@ class LocalScanner(PyThread, Logged):
                     if m:
                         t = m["type"]
                         path = m["path"]
-                        path = path if path.startswith(location) else location + "/" + path
+                        orig_path = path = path if path.startswith(location) else location + "/" + path
+                        if self.ReplaceLocation:
+                            path = self.ReplaceLocation + path[len(location:)]
+                        name = path.rsplit("/",1)[-1]
                         if t in "f-":
                             size = int(m["size"])
                             if size == 0:
                                 self.debug("Zero file size in:\n   ", l)
-                            name = path.rsplit("/",1)[-1]
-                            files.append(FileDescriptor(self.Server, location, path, name, size))
+                            files.append(FileDescriptor(self.Server, location, path, name, size,
+                                orig_path=orig_path))
                         elif t == "d": 
                             dirs.append(path)
                         else:
