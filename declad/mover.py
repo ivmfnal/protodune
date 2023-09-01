@@ -588,6 +588,8 @@ class MoverTask(Task, Logged):
 
 class Manager(PyThread, Logged):
     
+    DEFAULT_LOW_WATER_MARK = 20
+    
     def __init__(self, config, history_db):
         PyThread.__init__(self, name="Mover")
         Logged.__init__(self, name="Mover")
@@ -598,6 +600,7 @@ class Manager(PyThread, Logged):
         self.TaskQueue = TaskQueue(max_movers, capacity=capacity, stagger=stagger, delegate=self)
         self.RetryCooldown = int(config.get("retry_cooldown", 300))
         self.TaskKeepInterval = int(config.get("keep_interval", 24*3600))
+        self.LowWaterMark = config.get("low_water_mark", self.DEFAULT_LOW_WATER_MARK)
         self.HistoryDB = history_db
         self.NextRetry = {}	                # path -> t
         self.RecentTasks = {}               # name -> task
@@ -630,6 +633,9 @@ class Manager(PyThread, Logged):
     def current_transfers(self):
         waiting, active = self.TaskQueue.tasks()
         return active + waiting
+
+    def low_water(self):
+        return len(self.current_transfers()) < self.LowWaterMark
 
     @synchronized
     def add_files(self, files_dict):
