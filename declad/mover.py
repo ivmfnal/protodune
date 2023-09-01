@@ -583,7 +583,7 @@ class MoverTask(Task, Logged):
 
 class Manager(PyThread, Logged):
     
-    DEFAULT_LOW_WATER_MARK = 20
+    DEFAULT_LOW_WATER_MARK = 5
     
     def __init__(self, config, history_db):
         PyThread.__init__(self, name="Mover")
