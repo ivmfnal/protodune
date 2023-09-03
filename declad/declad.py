@@ -1,14 +1,18 @@
+import pprint, time, threading, signal
 from mover import Manager
 from scanner import Scanner
 from local_scanner import LocalScanner
 from pythreader import PyThread, synchronized, Primitive, Task, TaskQueue
 from config import Config
 from logs import Logged, init as init_logger
-import historydb, pprint, time, threading
+import historydb
 from web_server import App
 from webpie import HTTPServer
 
+GRACEFUL_SHUTDOWN_SIGNAL = signal.SIGHUP
+
 class DeclaD(PyThread, Logged):
+    
     
     def __init__(self, config, history_db):
         PyThread.__init__(self, name="DeclaD")
@@ -24,13 +28,27 @@ class DeclaD(PyThread, Logged):
         else:
             raise ValueError(f"Unknown or unspecified scanner type: {scanner_type}")
         self.Stop = False
+        
+    def signal_handler(self, signum, frame):
+        if signum == GRACEFUL_SHUTDOWN_SIGNAL:
+            self.log("graceful shutdown signal received")
+            self.stop()
+
+    def stop(self):
+        self.log("STOPPING ...")
+        self.Stop = True
+        self.wakeup()
 
     def run(self):
+        self.
         self.HistoryDB.start()
         self.Scanner.start()
         self.MoverManager.start()
         while not self.Stop:
             self.sleep(100)
+        self.MoverManager.stop()
+        self.log("waiting for the manager to finish ...")
+        self.MoverManager.join()
 
     def current_transfers(self):
         return self.MoverManager.current_transfers()
@@ -57,7 +75,7 @@ class DeclaD(PyThread, Logged):
 
     def input_location(self):
         return self.Scanner.Server, self.Scanner.Location
-
+        
 class ThreadMonitor(PyThread, Logged):
 
     def __init__(self, interval):
@@ -79,6 +97,9 @@ class ThreadMonitor(PyThread, Logged):
             for n, c in sorted(counts.items()):
                 self.log("    %-50s%d" % (n+":", c))
 
+class GracefulShutdownHandler(object):
+    
+    def __init__
 
 if __name__ == "__main__":
     import getopt, sys
@@ -110,6 +131,7 @@ if __name__ == "__main__":
     declad = DeclaD(config, history_db)
     web_config = config.get("web_gui", {})
     web_server = HTTPServer(web_config.get("port", 8080), App(web_config, declad, history_db))
+    signal.signal(GRACEFUL_SHUTDOWN_SIGNAL, declad.signal_handler)
     declad.start()
     web_server.start()
     declad.join()

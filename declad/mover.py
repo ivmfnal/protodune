@@ -8,6 +8,10 @@ from xrootd_scanner import XRootDScanner
 from lfn2pfn import lfn2pfn
 from datetime import datetime, timezone
 
+from pythreader import version_info as pythreader_version_info
+if pythreader_version_info < (2,15,0):
+    raise ModuleNotFoundError("pythreader version 2.15.0 or newer is required")
+
 class MoverTask(Task, Logged):
     
     RequiredMetadata = ["checksum", "file_size", "runs"]
@@ -700,5 +704,5 @@ class Manager(PyThread, Logged):
         while not self.Stop:
             self.sleep(60)
             self.purge_memory()
-                    
-    
+        self.log("STOPPING ...")
+        self.TaskQueue.drain()
