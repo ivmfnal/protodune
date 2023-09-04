@@ -137,5 +137,6 @@ if __name__ == "__main__":
     declad.start()
     web_server.start()
     declad.join()
+    print("declad thread exited")
     
 
