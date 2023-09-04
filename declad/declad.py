@@ -145,6 +145,6 @@ if __name__ == "__main__":
         if isinstance(x, Primitive):
                 try:    name = x.kind
                 except: pass
-        print(name, "daemon" if x.Daemon else "")
+        print(name, "daemon" if x.daemon else "")
     
 
