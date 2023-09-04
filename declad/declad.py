@@ -40,14 +40,14 @@ class DeclaD(PyThread, Logged):
         self.wakeup()
 
     def run(self):
-        self.
+        signal.signal(GRACEFUL_SHUTDOWN_SIGNAL, self.signal_handler)
         self.HistoryDB.start()
         self.Scanner.start()
         self.MoverManager.start()
         while not self.Stop:
             self.sleep(100)
-        self.MoverManager.stop()
         self.log("waiting for the manager to finish ...")
+        self.MoverManager.stop()
         self.MoverManager.join()
 
     def current_transfers(self):
@@ -97,26 +97,29 @@ class ThreadMonitor(PyThread, Logged):
             for n, c in sorted(counts.items()):
                 self.log("    %-50s%d" % (n+":", c))
 
-class GracefulShutdownHandler(object):
-    
-    def __init__
-
 if __name__ == "__main__":
-    import getopt, sys
+    import getopt, sys, os
     from logs import init_logger
     
-    opts, args = getopt.getopt(sys.argv[1:], "dc:l:")
+    opts, args = getopt.getopt(sys.argv[1:], "dc:l:p:i")
     opts = dict(opts)
+    
+    if "-p" in opts:
+        open(opts["-p"], "w").write("%d\n" % (os.getpid(),))
     
     config = Config(opts["-c"])
     debug = ("-d" in opts) or config.get("debug_enabled", False)
 
     log_out = opts.get("-l", config.get("log"))
     
-    init_logger(log_out, error_out=config.get("error"), 
-        debug_out=config.get("debug"),
-        debug_enabled=debug
-        )
+    if "-i" in opts:
+        # interactive - send all outout to stdout
+        init_logger("-", error_out="-", debug_out="-", debug_enabled=debug)
+    else:
+        init_logger(log_out, error_out=config.get("error"), 
+            debug_out=config.get("debug"),
+            debug_enabled=debug
+            )
 
     tm = ThreadMonitor(5*60)
     tm.start()
@@ -131,7 +134,6 @@ if __name__ == "__main__":
     declad = DeclaD(config, history_db)
     web_config = config.get("web_gui", {})
     web_server = HTTPServer(web_config.get("port", 8080), App(web_config, declad, history_db))
-    signal.signal(GRACEFUL_SHUTDOWN_SIGNAL, declad.signal_handler)
     declad.start()
     web_server.start()
     declad.join()

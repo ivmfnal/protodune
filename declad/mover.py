@@ -705,4 +705,5 @@ class Manager(PyThread, Logged):
             self.sleep(60)
             self.purge_memory()
         self.log("STOPPING ...")
+        self.TaskQueue.hold()
         self.TaskQueue.drain()
