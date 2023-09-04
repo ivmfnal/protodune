@@ -138,14 +138,6 @@ if __name__ == "__main__":
     declad.start()
     web_server.start()
     declad.join()
-    print("declad thread exited")
-    
-    print("threads still running:")
-    for x in threading.enumerate():
-        name = "%s.%s" % (x.__class__.__module__ or "", x.__class__.__name__)
-        if isinstance(x, Primitive):
-                try:    name = x.kind
-                except: pass
-        print(name, "daemon" if x.daemon else "")
+    print("declad thread ended")
     
 
