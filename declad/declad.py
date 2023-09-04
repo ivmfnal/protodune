@@ -9,10 +9,10 @@ import historydb
 from web_server import App
 from webpie import HTTPServer
 
-GRACEFUL_SHUTDOWN_SIGNAL = signal.SIGHUP
 
 class DeclaD(PyThread, Logged):
     
+    GRACEFUL_SHUTDOWN_SIGNAL = signal.SIGHUP
     
     def __init__(self, config, history_db):
         PyThread.__init__(self, name="DeclaD")
@@ -30,24 +30,24 @@ class DeclaD(PyThread, Logged):
         self.Stop = False
         
     def signal_handler(self, signum, frame):
-        if signum == GRACEFUL_SHUTDOWN_SIGNAL:
+        if signum == self.GRACEFUL_SHUTDOWN_SIGNAL:
             self.log("graceful shutdown signal received")
             self.stop()
 
     def stop(self):
-        self.log("STOPPING ...")
         self.Stop = True
         self.wakeup()
 
     def run(self):
-        signal.signal(GRACEFUL_SHUTDOWN_SIGNAL, self.signal_handler)
+        signal.signal(self.GRACEFUL_SHUTDOWN_SIGNAL, self.signal_handler)
         self.HistoryDB.start()
         self.Scanner.start()
         self.MoverManager.start()
         while not self.Stop:
             self.sleep(100)
-        self.log("waiting for the manager to finish ...")
+        self.log("stopping the manager ...")
         self.MoverManager.stop()
+        self.log("waiting for the manager to finish ...")
         self.MoverManager.join()
 
     def current_transfers(self):
