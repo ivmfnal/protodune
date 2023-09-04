@@ -133,7 +133,8 @@ if __name__ == "__main__":
     declad = DeclaD(config, history_db)
     signal.signal(GRACEFUL_SHUTDOWN_SIGNAL, declad.signal_handler)
     web_config = config.get("web_gui", {})
-    web_server = HTTPServer(web_config.get("port", 8080), App(web_config, declad, history_db))
+    web_server = HTTPServer(web_config.get("port", 8080), App(web_config, declad, history_db),
+            daemon=True)
     declad.start()
     web_server.start()
     declad.join()
