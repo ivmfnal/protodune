@@ -47,6 +47,7 @@ class DeclaD(PyThread, Logged):
         self.MoverManager.stop()
         self.log("waiting for the manager to finish ...")
         self.MoverManager.join()
+        self.log("ending thread")
 
     def current_transfers(self):
         return self.MoverManager.current_transfers()
