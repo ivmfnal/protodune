@@ -8,6 +8,9 @@ scanner:
     ls_command_template:    find $location -type f -exec stat -c "- %s {}" {} \;
     parse_re:               ^(?P<type>[df-])\s+(?P<size>\d+)\s+(?P<path>\S+)$
 
+    # CERN EOS xrootd
+    # parse_re: ^(?P<type>[a-z-])\S+\s+\S+\s+\S+\s+(?P<size>\d+)\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<path>\S+)$
+
     # non-recursive scanning:
     # ls_command_template:  ls -l $location
     # parse_re:             ^(?P<type>[a-z-])\S+\s+\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2}\s+(?P<size>\d+)\s+(?P<path>\S+)$

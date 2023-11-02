@@ -55,12 +55,11 @@ class LocalScanner(PyThread, Logged):
                         orig_path = path = path if path.startswith(location) else location + "/" + path
                         if self.ReplaceLocation:
                             path = self.ReplaceLocation + path[len(location):]
-                        name = path.rsplit("/",1)[-1]
                         if t in "f-":
                             size = int(m["size"])
                             if size == 0:
                                 self.debug("Zero file size in:\n   ", l)
-                            files.append(FileDescriptor(self.Server, location, path, name, size))
+                            files.append(FileDescriptor(self.Server, location, path, size))
                         elif t == "d": 
                             dirs.append(path)
                         else:

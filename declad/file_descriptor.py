@@ -1,12 +1,15 @@
 class FileDescriptor(object):
 
-    def __init__(self, server, location, path, name, size):
+    def __init__(self, server, location, path, size):
+        assert path.startswith(location)
         self.Server = server
         self.Location = location
-        self.Name = name
+        if '/' in path:
+            self.Name = path.rsplit("/", 1)[-1]
+        else:
+            self.Name = path
         self.Size = size
         self.OrigPath = path
-        assert path.startswith(location)
         relpath = path[len(location):]
         while relpath and relpath[0] == "/":
             relpath = relpath[1:]
